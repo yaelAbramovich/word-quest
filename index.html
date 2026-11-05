@@ -11,35 +11,31 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
   <title>Word Quest</title>
 </head>
 <body>
 <main class="app">
   <header>
     <div class="logo">WQ</div>
-    <div class="hd"><h1>Word Quest</h1><p>10 דקות ביום, בכיף</p></div>
+    <div class="hd"><h1>Word Quest</h1><p>אוצר מילים בכיף</p></div>
     <div class="mini">
       <span>⭐<b id="score">0</b></span><span>🔥<b id="streak">0</b></span><span>📚<b id="learned">0</b></span>
     </div>
   </header>
-
-  <section class="daily">
-    <div class="dl"><span>⏱️ היום <b id="dayTime">0:00</b> / 10:00 <span id="dayDone">✅</span></span><small id="dayStreak"></small></div>
-    <div class="bar"><div id="dayBar"></div></div>
-  </section>
 
   <nav class="tabs" id="tabs">
     <button data-tab="crossword">🧩<span>תשבץ</span></button>
     <button data-tab="wordsearch">🔎<span>תפזורת</span></button>
     <button data-tab="hangman">🪢<span>איש תלוי</span></button>
     <button data-tab="quiz">🧠<span>חידון</span></button>
+    <button data-tab="addwords">➕<span>מילים</span></button>
   </nav>
 
   <section class="card" id="view"></section>
 
   <section class="progress-card">
-    <div class="progress-title"><b>התקדמות במילים</b><span id="progressText">0 / 0</span></div>
+    <div class="progress-title"><b>התקדמות במילים</b><span id="progressText" dir="ltr">0 / 0</span></div>
     <div class="progress"><div id="progressBar"></div></div>
     <p>💡 מילים שטעית בהן יחזרו יותר פעמים בכל המשחקים.</p>
   </section>
@@ -47,11 +43,12 @@
   <button id="reset" class="reset">איפוס התקדמות</button>
 </main>
 
-<script src="words.js?v=6"></script>
-<script src="common.js?v=6"></script>
-<script src="quiz.js?v=6"></script>
-<script src="crossword.js?v=6"></script>
-<script src="wordsearch.js?v=6"></script>
-<script src="hangman.js?v=6"></script>
+<script src="words.js?v=7"></script>
+<script src="common.js?v=7"></script>
+<script src="quiz.js?v=7"></script>
+<script src="crossword.js?v=7"></script>
+<script src="wordsearch.js?v=7"></script>
+<script src="hangman.js?v=7"></script>
+<script src="addwords.js?v=7"></script>
 </body>
 </html>

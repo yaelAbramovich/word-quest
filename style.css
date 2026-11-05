@@ -41,3 +41,9 @@ header{margin:2px 2px 10px;gap:10px}.logo{width:42px;height:42px;border-radius:1
 @keyframes fall{to{transform:translateY(110vh) rotate(260deg)}}@keyframes pop{from{transform:scale(.6);opacity:0}}@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}@keyframes pulse{to{background:#ffe27a}}
 @media(max-width:380px){.tabs button span{font-size:11px}.mini{gap:5px}.mini span{padding:5px}}
 h1{white-space:nowrap;font-size:18px}.lives{font-size:15px;letter-spacing:0;max-width:120px}
+
+.tabs{grid-template-columns:repeat(5,1fr);gap:5px}.tabs button{font-size:18px}.tabs button span{font-size:11px}
+.up{display:block;text-align:center;background:var(--purple);color:#fff;border-radius:14px;padding:14px;font-weight:700;font-size:16px;margin:12px 0}.up input{display:none}
+.pv{max-width:100%;max-height:160px;border-radius:12px;display:block;margin:8px auto}.st{color:var(--muted);font-size:13.5px;margin:8px 0;min-height:20px}
+.wr{display:flex;gap:6px;margin-bottom:7px}.wr input{flex:1;min-width:0;border:2px solid #e3e3ee;border-radius:11px;padding:10px;font:inherit;font-size:16px;background:#fff;color:var(--dark)}.wr .en{direction:ltr;text-align:left}.wr button{border:0;background:#f3c9ce;border-radius:11px;width:40px;font-size:15px}
+.cl{list-style:none;padding:0;margin:0}.cl li{display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid #eee;font-size:15px}.cl li span{flex:1}.cl button{border:0;background:#ececf3;border-radius:10px;width:36px;height:34px}

@@ -5,7 +5,7 @@ function options(prop){
  return shuffle([current,...shuffle(words.filter(x=>x!==current)).slice(0,3)]).map(x=>x[prop]);
 }
 function newRound(){
- current=pickWeighted(1)[0];
+ current=pickWeighted(1,mode==="context"?(w=>w.ex):null)[0];
  let prompt,answers,correct,showWord=true,audioFirst=false;
  if(mode==="meaning"){
   prompt=`מה המשמעות המדויקת ביותר של <b dir="ltr">${current.w}</b>?`;
@@ -16,7 +16,7 @@ function newRound(){
   prompt=`איזו מילה משלימה בצורה הטובה ביותר את המשפט?<div class="example">"${blank}"</div>`;
   correct=current.w; answers=options("w"); showWord=false;
  } else if(mode==="reverse"){
-  prompt=`איזו מילה באנגלית מתאימה להסבר הבא?<br><br><b>${current.m}</b>`;
+  prompt=`איזו מילה באנגלית מתאימה להסבר הבא?<br><br><b>${current.m||current.he}</b>`;
   correct=current.w; answers=options("w"); showWord=false;
  } else {
   prompt=`הקשיבי למילה ואז בחרי את המשמעות שלה. אפשר לשמוע שוב כמה פעמים שתרצי.`;
@@ -45,10 +45,10 @@ function answer(button,correct){
  const fb=$("feedback"); fb.className="feedback show "+(ok?"good":"bad");
  if(ok){
   good(current);
-  fb.innerHTML=`<b>✓ יפה!</b><br>${current.m}<br><br><span class="example">${current.ex}</span>`;
+  fb.innerHTML=`<b>✓ יפה!</b><br><b dir="ltr">${current.w}</b> = ${current.he}${current.m?`<br>${current.m}`:""}${current.ex?`<br><br><span class="example">${current.ex}</span>`:""}`;
  } else {
   bad(current);
-  fb.innerHTML=`<b>לא נורא — זו בדיוק הסיבה שאנחנו מתרגלים.</b><br><br><b dir="ltr">${current.w}</b> = ${current.he}<br>${current.m}<br><br><span class="example">${current.ex}</span>`;
+  fb.innerHTML=`<b>לא נורא — זו בדיוק הסיבה שאנחנו מתרגלים.</b><br><br><b dir="ltr">${current.w}</b> = ${current.he}${current.m?`<br>${current.m}`:""}${current.ex?`<br><br><span class="example">${current.ex}</span>`:""}`;
  }
  speak(current.w);
  $("next").style.display="block";

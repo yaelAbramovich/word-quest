@@ -14,6 +14,8 @@ const S={
  mistakes:parse("wqMistakes","{}"),
  keyHandler:null
 };
+// words the user added (from an image or by hand) are stored on the device and merged into the word list
+parse("wqCustom","[]").forEach(c=>{ if(!words.some(x=>x.w===c.w)) words.push(c); });
 const games={};
 let currentTab=null;
 
@@ -57,7 +59,7 @@ function wordCard(w,title){
   <button class="sound sm" data-say="${w.w}" aria-label="השמעה">🔊</button>
   <div>${title?`<div class="wtitle">${title}</div>`:""}
    <b class="en" dir="ltr">${w.w}</b> — ${w.he}
-   <div class="mean">${w.m}</div><div class="example">${w.ex}</div></div></div>`;
+   ${w.m?`<div class="mean">${w.m}</div>`:""}${w.ex?`<div class="example">${w.ex}</div>`:""}</div></div>`;
 }
 
 function celebrate(msg){
@@ -81,36 +83,6 @@ document.addEventListener("keydown",e=>{
  else if(e.key==="Backspace") S.keyHandler("⌫");
 });
 
-// ---- daily 10-minute goal ----
-const GOAL=600;
-const dstr=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-let day=parse("wqDay",'{"d":"","sec":0}');
-let dayStreak=+store.get("wqDayStreak",0)||0, lastGoal=store.get("wqLastGoal","");
-let lastAct=Date.now();
-["pointerdown","keydown"].forEach(ev=>addEventListener(ev,()=>{lastAct=Date.now()},{passive:true}));
-function renderDay(){
- const s=Math.min(day.sec,99*60),m=Math.floor(s/60);
- $("dayTime").textContent=`${m}:${String(s%60).padStart(2,"0")}`;
- $("dayBar").style.width=Math.min(100,day.sec/GOAL*100)+"%";
- const y=new Date(); y.setDate(y.getDate()-1);
- const alive=lastGoal===dstr(new Date())||lastGoal===dstr(y);
- $("dayStreak").textContent=alive&&dayStreak?`🗓️ ${dayStreak} ימים ברצף`:"";
- $("dayDone").style.display=day.sec>=GOAL?"inline":"none";
-}
-function tick(){
- if(day.d!==dstr(new Date())) day={d:dstr(new Date()),sec:0};
- if(!document.hidden&&Date.now()-lastAct<45000){
-  day.sec++;
-  if(day.sec===GOAL){
-   const y=new Date(); y.setDate(y.getDate()-1);
-   dayStreak=lastGoal===dstr(y)?dayStreak+1:1; lastGoal=dstr(new Date());
-   store.set("wqDayStreak",dayStreak); store.set("wqLastGoal",lastGoal);
-   celebrate("10 דקות להיום! כל הכבוד 🎉");
-  }
- }
- store.set("wqDay",JSON.stringify(day)); renderDay();
-}
-
 function showTab(name){
  currentTab=name; store.set("wqTab",name); S.keyHandler=null;
  document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));
@@ -123,6 +95,6 @@ $("reset").onclick=()=>{
  }
 };
 window.addEventListener("load",()=>{
- renderStats(); tick(); setInterval(tick,1000);
+ renderStats();
  const t=store.get("wqTab","crossword"); showTab(games[t]?t:"crossword");
 });
