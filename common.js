@@ -53,10 +53,9 @@ function say(texts,notify){
  if(!("speechSynthesis" in window)) return;
  try{
   speechSynthesis.cancel();
-  texts.filter(Boolean).forEach((t,i)=>{
-   const u=new SpeechSynthesisUtterance(t); u.lang="en-US"; u.rate=i?.85:.78;
-   speechSynthesis.speak(u);
-  });
+  // one utterance (word, pause, sentence): iOS Safari tends to drop a second queued utterance
+  const u=new SpeechSynthesisUtterance(texts.filter(Boolean).join(". ... ")); u.lang="en-US"; u.rate=.78;
+  speechSynthesis.speak(u);
  }catch(e){}
 }
 function speak(text,notify){ say([text],notify); }
