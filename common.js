@@ -41,7 +41,6 @@ function pickWeighted(n,filter){
 }
 
 function renderStats(){
- $("score").textContent=S.score; $("streak").textContent=S.streak; $("learned").textContent=S.learned.size;
 }
 function save(){
  store.set("wqScore",S.score); store.set("wqStreak",S.streak);
