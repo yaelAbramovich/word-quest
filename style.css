@@ -51,3 +51,4 @@ h1{white-space:nowrap;font-size:18px}.lives{font-size:15px;letter-spacing:0;max-
 .toast{position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--dark);color:#fff;padding:11px 16px;border-radius:14px;font-size:14px;z-index:60;max-width:90vw;text-align:center}
 @media(max-width:380px){.mini{gap:4px}.mini span{padding:5px 6px}}
 header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-size:17px}.mini{gap:5px;flex:none}.mini span{padding:6px 7px;font-size:14px}.mini b{font-size:14px}.mute{width:34px}
+.known{display:block;margin:6px 0 4px;border:0;background:#fff;color:var(--green);border-radius:10px;padding:7px 10px;font:inherit;font-size:13px;font-weight:600}.known:disabled{color:var(--muted)}.cl button.wide{width:auto;padding:0 10px;font-size:13px}

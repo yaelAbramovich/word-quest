@@ -16,6 +16,18 @@ const S={
 };
 // words the user added (from an image or by hand) are stored on the device and merged into the word list
 parse("wqCustom","[]").forEach(c=>{ if(!words.some(x=>x.w===c.w)) words.push(c); });
+// words you know well can be hidden: they are removed from `words`, which every game uses
+const allWords=[...words];
+const hidden=new Set(parse("wqHidden","[]"));
+const MIN_WORDS=8;
+function applyHidden(){ words.length=0; words.push(...allWords.filter(w=>!hidden.has(w.w))); }
+function saveHidden(){ store.set("wqHidden",JSON.stringify([...hidden])); }
+function hideWord(w){
+ if(words.length<=MIN_WORDS){ toast(`צריך לפחות ${MIN_WORDS} מילים פעילות כדי שהמשחקים יעבדו`); return false; }
+ hidden.add(w.w); saveHidden(); applyHidden(); return true;
+}
+function restoreWord(name){ hidden.delete(name); saveHidden(); applyHidden(); }
+applyHidden();
 const games={};
 let currentTab=null;
 
@@ -45,6 +57,7 @@ function renderMute(){
  b.setAttribute("aria-label",muted?"הפעלת קול":"השתקה");
 }
 function toast(t){
+ document.querySelectorAll(".toast").forEach(x=>x.remove());
  const d=document.createElement("div"); d.className="toast"; d.textContent=t;
  document.body.appendChild(d); setTimeout(()=>d.remove(),1600);
 }
@@ -64,6 +77,8 @@ function speakWithSentence(w,notify){ say([w.w,w.ex],notify); }
 document.addEventListener("click",e=>{
  const m=e.target.closest("#mute");
  if(m){ muted=!muted; store.set("wqMuted",muted?"1":"0"); if(muted){try{speechSynthesis.cancel()}catch(x){}} renderMute(); return; }
+ const k=e.target.closest("[data-known]");
+ if(k){ const w=allWords.find(x=>x.w===k.dataset.known); if(w&&hideWord(w)){ k.textContent="✓ הוסרה. אפשר להחזיר בלשונית מילים"; k.disabled=true; } return; }
  const f=e.target.closest("[data-sw]");
  if(f){ const w=words.find(x=>x.w===f.dataset.sw); if(w) speakWithSentence(w,true); return; }
  const b=e.target.closest("[data-say]"); if(b) speak(b.dataset.say,true);
@@ -75,6 +90,7 @@ function wordCard(w,title){
   <button class="sound sm" data-sw="${w.w}" aria-label="השמעה">🔊</button>
   <div>${title?`<div class="wtitle">${title}</div>`:""}
    <b class="en" dir="ltr">${w.w}</b> — ${w.he}
+   <button class="known" data-known="${w.w}">✓ מכירה טוב — להסיר מהמשחקים</button>
    ${w.m?`<div class="mean">${w.m}</div>`:""}${w.ex?`<div class="example">${w.ex}</div>`:""}</div></div>`;
 }
 
