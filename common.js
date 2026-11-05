@@ -39,33 +39,41 @@ function save(){
 function good(w,pts=10){S.score+=pts;S.streak++;S.learned.add(w.w);S.mistakes[w.w]=Math.max(0,(S.mistakes[w.w]||0)-1);save()}
 function bad(w){S.streak=0;S.mistakes[w.w]=(S.mistakes[w.w]||0)+1;save()}
 
-function speak(text){
- if(!("speechSynthesis" in window)){return}
- try{
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text); u.lang="en-US"; u.rate=.78;
-  speechSynthesis.speak(u);
- }catch(e){}
+let muted=store.get("wqMuted","0")==="1";
+function renderMute(){
+ const b=$("mute"); b.textContent=muted?"🔇":"🔊"; b.setAttribute("aria-pressed",muted);
+ b.setAttribute("aria-label",muted?"הפעלת קול":"השתקה");
 }
-// the word, then its full example sentence (if it has one)
-function speakWithSentence(w){
+function toast(t){
+ const d=document.createElement("div"); d.className="toast"; d.textContent=t;
+ document.body.appendChild(d); setTimeout(()=>d.remove(),1600);
+}
+function say(texts,notify){
+ if(muted){ if(notify) toast("🔇 הקול כבוי — אפשר להדליק למעלה"); return; }
  if(!("speechSynthesis" in window)) return;
  try{
   speechSynthesis.cancel();
-  [w.w,w.ex].filter(Boolean).forEach((t,i)=>{
+  texts.filter(Boolean).forEach((t,i)=>{
    const u=new SpeechSynthesisUtterance(t); u.lang="en-US"; u.rate=i?.85:.78;
    speechSynthesis.speak(u);
   });
  }catch(e){}
 }
+function speak(text,notify){ say([text],notify); }
+// the word, then its full example sentence (if it has one)
+function speakWithSentence(w,notify){ say([w.w,w.ex],notify); }
 document.addEventListener("click",e=>{
- const b=e.target.closest("[data-say]"); if(b) speak(b.dataset.say);
+ const m=e.target.closest("#mute");
+ if(m){ muted=!muted; store.set("wqMuted",muted?"1":"0"); if(muted){try{speechSynthesis.cancel()}catch(x){}} renderMute(); return; }
+ const f=e.target.closest("[data-sw]");
+ if(f){ const w=words.find(x=>x.w===f.dataset.sw); if(w) speakWithSentence(w,true); return; }
+ const b=e.target.closest("[data-say]"); if(b) speak(b.dataset.say,true);
 });
 
 // the card shown after a word is used: sound button + translation + meaning + example
 function wordCard(w,title){
  return `<div class="wcard">
-  <button class="sound sm" data-say="${w.w}" aria-label="השמעה">🔊</button>
+  <button class="sound sm" data-sw="${w.w}" aria-label="השמעה">🔊</button>
   <div>${title?`<div class="wtitle">${title}</div>`:""}
    <b class="en" dir="ltr">${w.w}</b> — ${w.he}
    ${w.m?`<div class="mean">${w.m}</div>`:""}${w.ex?`<div class="example">${w.ex}</div>`:""}</div></div>`;
@@ -104,6 +112,6 @@ $("reset").onclick=()=>{
  }
 };
 window.addEventListener("load",()=>{
- renderStats();
+ renderStats(); renderMute();
  const t=store.get("wqTab","crossword"); showTab(games[t]?t:"crossword");
 });

@@ -133,7 +133,7 @@ function solve(e,earned){
  e.solved=true;
  e.cells.forEach(([r,c])=>{const x=P.cells[r][c];x.locked=true;x.val=x.ch});
  if(earned) good(e.w);
- speak(e.w.w);
+ speakWithSentence(e.w);
  $("cwInfo").innerHTML=wordCard(e.w,earned?"✓ מצוין!":"");
  if(P.entries.every(x=>x.solved)){
   P.won=true; S.score+=30; save();

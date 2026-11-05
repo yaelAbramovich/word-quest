@@ -50,7 +50,7 @@ function answer(button,correct){
   bad(current);
   fb.innerHTML=`<b>לא נורא — זו בדיוק הסיבה שאנחנו מתרגלים.</b><br><br><b dir="ltr">${current.w}</b> = ${current.he}${current.m?`<br>${current.m}`:""}${current.ex?`<br><br><span class="example">${current.ex}</span>`:""}`;
  }
- speak(current.w);
+ speakWithSentence(current);
  $("next").style.display="block";
 }
 

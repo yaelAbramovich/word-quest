@@ -38,7 +38,7 @@ function draw(){
   h+=`<div class="ws${selSet.has(k)?" sel":""}${col!==undefined?" f"+col:""}${G.hintCell===k?" hint":""}" data-r="${r}" data-c="${c}">${G.grid[r][c]}</div>`;
  }
  $("wsGrid").innerHTML=h;
- $("wsList").innerHTML=G.placed.map(p=>`<span class="chip${p.found?" done f"+p.idx:""}" ${p.found?`data-say="${p.w.w}"`:""}>${
+ $("wsList").innerHTML=G.placed.map(p=>`<span class="chip${p.found?" done f"+p.idx:""}" ${p.found?`data-sw="${p.w.w}"`:""}>${
   p.found?`<b dir="ltr">${p.w.w}</b> — ${p.w.he} 🔊`:G.hard?p.w.he:`<span dir="ltr">${p.w.w}</span>`}</span>`).join("");
  $("wsHard").textContent=G.hard?"🔥 מצב אתגר: פעיל":"🌱 מצב רגיל";
 }

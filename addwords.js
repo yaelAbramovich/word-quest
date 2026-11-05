@@ -27,7 +27,7 @@ function drawRows(){
 }
 function drawCustom(){
  const c=customWords();
- $("awList").innerHTML=c.length?`<h4>המילים שהוספת (${c.length})</h4><ul class="cl">${c.map(w=>`<li><span><b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span><button data-say="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-rm="${esc(w.w)}" aria-label="מחיקה">✕</button></li>`).join("")}</ul>`:"";
+ $("awList").innerHTML=c.length?`<h4>המילים שהוספת (${c.length})</h4><ul class="cl">${c.map(w=>`<li><span><b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span><button data-sw="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-rm="${esc(w.w)}" aria-label="מחיקה">✕</button></li>`).join("")}</ul>`:"";
 }
 
 async function onImage(file){

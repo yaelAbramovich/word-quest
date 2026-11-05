@@ -33,7 +33,7 @@ function draw(){
 function end(won){
  H.done=true;
  if(won){ good(H.w); celebrate("יפה מאוד! 🎉"); } else bad(H.w);
- speak(H.w.w);
+ speakWithSentence(H.w);
  draw();
  $("hmInfo").innerHTML=wordCard(H.w,won?"✓ ניצלת את האיש!":"😢 הפעם לא הצלחנו — המילה הייתה:");
 }
@@ -62,7 +62,7 @@ games.hangman={render(c){
  <div class="tools"><button id="hmHear">🔊 השמעה</button><button id="hmHint">💡 רמז (עולה חיים)</button></div>
  <button class="next" id="hmNext">למילה הבאה ←</button>`;
  bindKeyboard(c,key);
- $("hmHear").onclick=()=>speak(H.w.w);
+ $("hmHear").onclick=()=>speak(H.w.w,true);
  $("hmHint").onclick=hint;
  $("hmNext").onclick=newWord;
  newWord();
