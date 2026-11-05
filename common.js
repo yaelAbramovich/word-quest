@@ -30,8 +30,6 @@ function pickWeighted(n,filter){
 
 function renderStats(){
  $("score").textContent=S.score; $("streak").textContent=S.streak; $("learned").textContent=S.learned.size;
- $("progressText").textContent=`${S.learned.size} / ${words.length}`;
- $("progressBar").style.width=`${S.learned.size/words.length*100}%`;
 }
 function save(){
  store.set("wqScore",S.score); store.set("wqStreak",S.streak);
@@ -47,6 +45,17 @@ function speak(text){
   speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(text); u.lang="en-US"; u.rate=.78;
   speechSynthesis.speak(u);
+ }catch(e){}
+}
+// the word, then its full example sentence (if it has one)
+function speakWithSentence(w){
+ if(!("speechSynthesis" in window)) return;
+ try{
+  speechSynthesis.cancel();
+  [w.w,w.ex].filter(Boolean).forEach((t,i)=>{
+   const u=new SpeechSynthesisUtterance(t); u.lang="en-US"; u.rate=i?.85:.78;
+   speechSynthesis.speak(u);
+  });
  }catch(e){}
 }
 document.addEventListener("click",e=>{

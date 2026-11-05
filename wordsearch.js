@@ -67,7 +67,7 @@ function finish(){
  const p=G.placed.find(x=>!x.found&&(x.L===s||x.L===rev));
  if(p&&sel.length>1){
   p.found=true; sel.forEach(([r,c])=>G.colors[r+","+c]=p.idx);
-  good(p.w); speak(p.w.w);
+  good(p.w); speakWithSentence(p.w);
   $("wsInfo").innerHTML=wordCard(p.w,"✓ מצאת!");
   if(G.placed.every(x=>x.found)){
    S.score+=30; save(); G.won=true;
