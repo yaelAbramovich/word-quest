@@ -35,20 +35,28 @@ let currentTab=null;
 const letters=w=>w.w.replace(/[^a-z]/gi,"").toUpperCase();
 function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
 // random distinct words; words with more mistakes are more likely to be picked
-// share of the recent crossword/quiz attempts on this word that went well (null = never practiced)
-function knownPct(w){
- const a=S.stats[w.w]; if(!a||!a.length) return null;
- return a.reduce((x,y)=>x+y,0)/a.length;
+// ---- per-word knowledge, measured only in crossword + quiz ----
+// stats[word] = last 10 attempts as [1|0, "YYYY-MM-DD"]. A percentage is shown only after 10 attempts;
+// it is the share of correct attempts, capped at 90% unless the successes fall on at least 3 different days.
+const WINDOW=10, DAYS_FOR_100=3;
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+Object.keys(S.stats).forEach(k=>{S.stats[k]=S.stats[k].slice(-WINDOW).map(x=>Array.isArray(x)?x:[x,""])});   // old format had no dates
+function wstat(w){
+ const a=S.stats[w.w]||[], n=a.length, c=a.filter(x=>x[0]).length;
+ const days=new Set(a.filter(x=>x[0]&&x[1]).map(x=>x[1])).size;
+ const raw=n?c/n*100:0;
+ const pct=n>=WINDOW?Math.round(Math.min(raw,days>=DAYS_FOR_100?100:90)):null;
+ return {a,n,c,days,raw,pct,capped:n>=WINDOW&&raw>90&&days<DAYS_FOR_100,mastered:n>=WINDOW&&c>=9&&days>=DAYS_FOR_100};
 }
 function record(w,ok){
  const a=S.stats[w.w]||(S.stats[w.w]=[]);
- a.push(ok?1:0); if(a.length>10) a.shift();
+ a.push([ok?1:0,today()]); if(a.length>WINDOW) a.shift();
  save();
 }
-// weakly known and never-practiced words are drawn more often
+// words that are new, in learning, or weak are drawn more often
 function weightOf(w){
- const p=knownPct(w);
- return (p===null?2.5:1+4*(1-p))+(S.mistakes[w.w]||0);
+ const t=wstat(w), rate=t.pct!==null?t.pct/100:(t.n?t.c/t.n:0);
+ return Math.max(t.pct===null?2:1,1+4*(1-rate))+(S.mistakes[w.w]||0);
 }
 function pickWeighted(n,filter){
  return words.filter(filter||(()=>true))

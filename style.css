@@ -55,3 +55,4 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 .cl li{flex-wrap:wrap}.st2{flex-basis:100%;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}.st2 b{color:var(--dark);font-size:13px;min-width:34px}.mb{flex:1;height:7px;background:#ececf3;border-radius:99px;overflow:hidden}.mb i{display:block;height:100%;border-radius:99px}.rec{color:var(--green);font-weight:700}
 .sum{background:#f0eeff;border-radius:12px;padding:9px 12px;font-size:14px;margin-bottom:8px}.sorts{margin:8px 0}.sorts button.on{background:var(--dark);color:#fff}
 .adder{margin:12px 0;background:#f7f7fb;border-radius:14px;padding:4px 12px}.adder summary{padding:11px 0;font-weight:700;font-size:15px;cursor:pointer}
+.dots{display:flex;gap:3px}.d{width:9px;height:9px;border-radius:50%;background:#ececf3;display:block}.d.ok{background:var(--green)}.d.no{background:var(--red)}.st2{flex-wrap:wrap}
