@@ -12,6 +12,7 @@ const S={
  streak:+store.get("wqStreak",0)||0,
  learned:new Set(parse("wqLearned","[]")),
  mistakes:parse("wqMistakes","{}"),
+ stats:parse("wqStats","{}"),   // per word: last 10 results (1 = knew it, 0 = didn't), only from crossword + quiz
  keyHandler:null
 };
 // words the user added (from an image or by hand) are stored on the device and merged into the word list
@@ -34,9 +35,24 @@ let currentTab=null;
 const letters=w=>w.w.replace(/[^a-z]/gi,"").toUpperCase();
 function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
 // random distinct words; words with more mistakes are more likely to be picked
+// share of the recent crossword/quiz attempts on this word that went well (null = never practiced)
+function knownPct(w){
+ const a=S.stats[w.w]; if(!a||!a.length) return null;
+ return a.reduce((x,y)=>x+y,0)/a.length;
+}
+function record(w,ok){
+ const a=S.stats[w.w]||(S.stats[w.w]=[]);
+ a.push(ok?1:0); if(a.length>10) a.shift();
+ save();
+}
+// weakly known and never-practiced words are drawn more often
+function weightOf(w){
+ const p=knownPct(w);
+ return (p===null?2.5:1+4*(1-p))+(S.mistakes[w.w]||0);
+}
 function pickWeighted(n,filter){
  return words.filter(filter||(()=>true))
-  .map(w=>({w,k:Math.pow(Math.random(),1/(1+(S.mistakes[w.w]||0)*2))}))
+  .map(w=>({w,k:Math.pow(Math.random(),1/weightOf(w))}))
   .sort((a,b)=>b.k-a.k).slice(0,n).map(x=>x.w);
 }
 
@@ -44,7 +60,7 @@ function renderStats(){
 }
 function save(){
  store.set("wqScore",S.score); store.set("wqStreak",S.streak);
- store.set("wqLearned",JSON.stringify([...S.learned])); store.set("wqMistakes",JSON.stringify(S.mistakes));
+ store.set("wqStats",JSON.stringify(S.stats)); store.set("wqLearned",JSON.stringify([...S.learned])); store.set("wqMistakes",JSON.stringify(S.mistakes));
  renderStats();
 }
 function good(w,pts=10){S.score+=pts;S.streak++;S.learned.add(w.w);S.mistakes[w.w]=Math.max(0,(S.mistakes[w.w]||0)-1);save()}
@@ -122,7 +138,7 @@ function showTab(name){
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 $("reset").onclick=()=>{
  if(confirm("לאפס את כל הנקודות וההתקדמות?")){
-  S.score=0;S.streak=0;S.learned=new Set();S.mistakes={};save();showTab(currentTab);
+  S.score=0;S.streak=0;S.learned=new Set();S.mistakes={};S.stats={};save();showTab(currentTab);
  }
 };
 window.addEventListener("load",()=>{

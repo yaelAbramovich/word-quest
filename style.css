@@ -52,3 +52,6 @@ h1{white-space:nowrap;font-size:18px}.lives{font-size:15px;letter-spacing:0;max-
 @media(max-width:380px){.mini{gap:4px}.mini span{padding:5px 6px}}
 header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-size:17px}.mini{gap:5px;flex:none}.mini span{padding:6px 7px;font-size:14px}.mini b{font-size:14px}.mute{width:34px}
 .known{display:block;margin:6px 0 4px;border:0;background:#fff;color:var(--green);border-radius:10px;padding:7px 10px;font:inherit;font-size:13px;font-weight:600}.known:disabled{color:var(--muted)}.cl button.wide{width:auto;padding:0 10px;font-size:13px}
+.cl li{flex-wrap:wrap}.st2{flex-basis:100%;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}.st2 b{color:var(--dark);font-size:13px;min-width:34px}.mb{flex:1;height:7px;background:#ececf3;border-radius:99px;overflow:hidden}.mb i{display:block;height:100%;border-radius:99px}.rec{color:var(--green);font-weight:700}
+.sum{background:#f0eeff;border-radius:12px;padding:9px 12px;font-size:14px;margin-bottom:8px}.sorts{margin:8px 0}.sorts button.on{background:var(--dark);color:#fff}
+.adder{margin:12px 0;background:#f7f7fb;border-radius:14px;padding:4px 12px}.adder summary{padding:11px 0;font-weight:700;font-size:15px;cursor:pointer}

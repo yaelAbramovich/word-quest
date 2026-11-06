@@ -66,7 +66,7 @@ function generate(){
  }
  const {ent,r0,c0,W,H}=best;
  const cells=Array.from({length:H},()=>Array(W).fill(null));
- const entries=ent.map(e=>({w:e.w,L:e.L,d:e.d,r:e.r-r0,c:e.c-c0,solved:false,cells:[]}));
+ const entries=ent.map(e=>({w:e.w,L:e.L,d:e.d,r:e.r-r0,c:e.c-c0,solved:false,hinted:false,missed:false,cells:[]}));
  entries.forEach((e,i)=>{
   for(let k=0;k<e.L.length;k++){
    const r=e.r+(e.d?k:0), c=e.c+(e.d?0:k);
@@ -123,6 +123,7 @@ function check(ei){
  if(e.solved||!e.cells.every(([r,c])=>P.cells[r][c].val)) return;
  if(e.cells.every(([r,c])=>P.cells[r][c].val===P.cells[r][c].ch)) solve(e,true);
  else{
+  e.missed=true;
   const keys=e.cells.map(x=>x.join());
   keys.forEach(k=>P.bad.add(k)); draw();
   setTimeout(()=>{keys.forEach(k=>P.bad.delete(k)); if(P===P0)draw()},700);
@@ -132,7 +133,7 @@ let P0;
 function solve(e,earned){
  e.solved=true;
  e.cells.forEach(([r,c])=>{const x=P.cells[r][c];x.locked=true;x.val=x.ch});
- if(earned) good(e.w);
+ if(earned){ good(e.w); record(e.w,!(e.hinted||e.missed)); }
  speakWithSentence(e.w);
  $("cwInfo").innerHTML=wordCard(e.w,earned?"✓ מצוין!":"");
  if(P.entries.every(x=>x.solved)){
@@ -166,14 +167,14 @@ function key(k){
 function hint(){
  if(P.won) return;
  const [r,c]=activeCell(), cell=P.cells[r][c];
- if(!cell.locked){ cell.val=cell.ch; }
+ if(!cell.locked){ cell.val=cell.ch; cell.ents.filter(i=>i>=0).forEach(i=>P.entries[i].hinted=true); }
  const before=P.entries.filter(x=>x.solved).length;
  cell.ents.filter(i=>i>=0).forEach(check);
  if(P.entries.filter(x=>x.solved).length===before) draw();
 }
 function reveal(){
  if(P.won||cur().solved) return;
- const e=cur(); bad(e.w); solve(e,false);
+ const e=cur(); bad(e.w); record(e.w,false); solve(e,false);
 }
 
 function newPuzzle(){

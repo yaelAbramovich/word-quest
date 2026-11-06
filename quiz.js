@@ -43,6 +43,7 @@ function answer(button,correct){
   [...document.querySelectorAll(".answer")].find(b=>b.textContent.trim()===correct)?.classList.add("correct");
  }
  const fb=$("feedback"); fb.className="feedback show "+(ok?"good":"bad");
+ record(current,ok);
  if(ok){
   good(current);
   fb.innerHTML=`<b>✓ יפה!</b><br><b dir="ltr">${current.w}</b> = ${current.he}${current.m?`<br>${current.m}`:""}${current.ex?`<br><br><span class="example">${current.ex}</span>`:""}`;
