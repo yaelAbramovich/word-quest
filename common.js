@@ -12,6 +12,7 @@ const S={
  streak:+store.get("wqStreak",0)||0,
  learned:new Set(parse("wqLearned","[]")),
  mistakes:parse("wqMistakes","{}"),
+ totals:parse("wqTotals","{}"), // per word, all time: s = successes, m = mistakes, h = needed help (hint / reveal)
  stats:parse("wqStats","{}"),   // per word: last 10 results (1 = knew it, 0 = didn't), only from crossword + quiz
  keyHandler:null
 };
@@ -41,6 +42,8 @@ function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.fl
 const WINDOW=10, DAYS_FOR_100=3;
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 Object.keys(S.stats).forEach(k=>{S.stats[k]=S.stats[k].slice(-WINDOW).map(x=>Array.isArray(x)?x:[x,""])});   // old format had no dates
+// words practiced before totals existed: seed them from their recent attempts
+Object.keys(S.stats).forEach(k=>{ if(!S.totals[k]){ const a=S.stats[k]; S.totals[k]={s:a.filter(x=>(Array.isArray(x)?x[0]:x)).length,m:a.filter(x=>!(Array.isArray(x)?x[0]:x)).length,h:0}; } });
 function wstat(w){
  const a=S.stats[w.w]||[], n=a.length, c=a.filter(x=>x[0]).length;
  const days=new Set(a.filter(x=>x[0]&&x[1]).map(x=>x[1])).size;
@@ -48,7 +51,11 @@ function wstat(w){
  const pct=n>=WINDOW?Math.round(Math.min(raw,days>=DAYS_FOR_100?100:90)):null;
  return {a,n,c,days,raw,pct,capped:n>=WINDOW&&raw>90&&days<DAYS_FOR_100,mastered:n>=WINDOW&&c>=9&&days>=DAYS_FOR_100};
 }
-function record(w,ok){
+// kind: "ok" (knew it), "miss" (wrong answer) or "help" (used a hint / revealed the word)
+function record(w,kind){
+ const ok=kind==="ok";
+ const t=S.totals[w.w]||(S.totals[w.w]={s:0,m:0,h:0});
+ t[ok?"s":kind==="help"?"h":"m"]++;
  const a=S.stats[w.w]||(S.stats[w.w]=[]);
  a.push([ok?1:0,today()]); if(a.length>WINDOW) a.shift();
  save();
@@ -68,7 +75,7 @@ function renderStats(){
 }
 function save(){
  store.set("wqScore",S.score); store.set("wqStreak",S.streak);
- store.set("wqStats",JSON.stringify(S.stats)); store.set("wqLearned",JSON.stringify([...S.learned])); store.set("wqMistakes",JSON.stringify(S.mistakes));
+ store.set("wqStats",JSON.stringify(S.stats)); store.set("wqTotals",JSON.stringify(S.totals)); store.set("wqLearned",JSON.stringify([...S.learned])); store.set("wqMistakes",JSON.stringify(S.mistakes));
  renderStats();
 }
 function good(w,pts=10){S.score+=pts;S.streak++;S.learned.add(w.w);S.mistakes[w.w]=Math.max(0,(S.mistakes[w.w]||0)-1);save()}
@@ -146,7 +153,7 @@ function showTab(name){
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 $("reset").onclick=()=>{
  if(confirm("לאפס את כל הנקודות וההתקדמות?")){
-  S.score=0;S.streak=0;S.learned=new Set();S.mistakes={};S.stats={};save();showTab(currentTab);
+  S.score=0;S.streak=0;S.learned=new Set();S.mistakes={};S.stats={};S.totals={};save();showTab(currentTab);
  }
 };
 window.addEventListener("load",()=>{

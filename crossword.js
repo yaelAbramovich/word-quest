@@ -133,7 +133,7 @@ let P0;
 function solve(e,earned){
  e.solved=true;
  e.cells.forEach(([r,c])=>{const x=P.cells[r][c];x.locked=true;x.val=x.ch});
- if(earned){ good(e.w); record(e.w,!(e.hinted||e.missed)); }
+ if(earned){ good(e.w); record(e.w,e.hinted?"help":e.missed?"miss":"ok"); }
  speakWithSentence(e.w);
  $("cwInfo").innerHTML=wordCard(e.w,earned?"✓ מצוין!":"");
  if(P.entries.every(x=>x.solved)){
@@ -174,7 +174,7 @@ function hint(){
 }
 function reveal(){
  if(P.won||cur().solved) return;
- const e=cur(); bad(e.w); record(e.w,false); solve(e,false);
+ const e=cur(); bad(e.w); record(e.w,"help"); solve(e,false);
 }
 
 function newPuzzle(){

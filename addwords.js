@@ -36,7 +36,9 @@ function statLine(w){
   const col=t.pct>=80?"#1f9d62":t.pct>=50?"#e6a100":"#d64c57";
   label=`<b style="color:${col}">${t.pct}%</b>${t.capped?`<span>(עד 90% — צריך הצלחות ב-${DAYS_FOR_100} ימים שונים)</span>`:""}`;
  }
- return `<div class="st2"><span class="dots" dir="ltr">${dots}</span>${label}${t.mastered?`<span class="rec">💡 אפשר להסיר</span>`:""}</div>`;
+ const tt=S.totals[w.w]||{s:0,m:0,h:0};
+ return `<div class="st2"><span class="dots" dir="ltr">${dots}</span>${label}${t.mastered?`<span class="rec">💡 אפשר להסיר</span>`:""}</div>
+ <div class="st2 tot"><span class="g">✓ הצלחות: ${tt.s}</span><span class="r">✗ טעויות: ${tt.m}</span><span class="y">💡 עזרות: ${tt.h}</span></div>`;
 }
 function drawCustom(){
  const gone=allWords.filter(w=>hidden.has(w.w));
@@ -48,7 +50,7 @@ function drawCustom(){
  const row=(w,btns,extra)=>`<li><span><b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span>${btns}${extra||""}</li>`;
  const sb=(k,t)=>`<button data-sort="${k}" class="${sortBy===k?"on":""}">${t}</button>`;
  $("awList").innerHTML=`<h4>המילים במשחקים (${words.length})</h4>
- <p class="sub">האחוז נמדד רק בתשבץ ובחידון, ומופיע אחרי ${WINDOW} ניסיונות (הנקודות מראות את התוצאות: ירוק = ידעת). הוא מבוסס על ${WINDOW} הניסיונות האחרונים. 100% = כל הניסיונות נכונים, עם הצלחות ב-${DAYS_FOR_100} ימים שונים. בפחות ימים — המקסימום 90%. רמז או "גלי מילה" נחשבים כאילו לא ידעת. מילים חדשות וחלשות יופיעו יותר.</p>
+ <p class="sub">האחוז נמדד רק בתשבץ ובחידון, ומופיע אחרי ${WINDOW} ניסיונות (הנקודות מראות את התוצאות: ירוק = ידעת). הוא מבוסס על ${WINDOW} הניסיונות האחרונים. 100% = כל הניסיונות נכונים, עם הצלחות ב-${DAYS_FOR_100} ימים שונים. בפחות ימים — המקסימום 90%. רמז או "גלי מילה" נחשבים כאילו לא ידעת. מילים חדשות וחלשות יופיעו יותר. בנוסף, מתחת לכל מילה מוצגת הספירה הכוללת מאז ומעולם: הצלחות, טעויות וכמה פעמים נעזרת ברמז.</p>
  <div class="sum">${withPct.length} מילים עם אחוז${avg===null?"":` (ממוצע ${avg}%)`} · ${learning} בלמידה · ${fresh} חדשות</div>
  <div class="tools sorts">${sb("weak","הכי חלשות")}${sb("strong","הכי חזקות")}${sb("alpha","א-ב")}</div>
  <ul class="cl">${act.map(w=>row(w,`<button data-say="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-hide="${esc(w.w)}" aria-label="מכירה טוב" title="מכירה טוב">✓</button>${w.custom?`<button data-rm="${esc(w.w)}" aria-label="מחיקה">✕</button>`:""}`,statLine(w))).join("")}</ul>`+
