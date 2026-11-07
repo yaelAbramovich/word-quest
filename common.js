@@ -81,6 +81,7 @@ function save(){
 function good(w,pts=10){S.score+=pts;S.streak++;S.learned.add(w.w);S.mistakes[w.w]=Math.max(0,(S.mistakes[w.w]||0)-1);save()}
 function bad(w){S.streak=0;S.mistakes[w.w]=(S.mistakes[w.w]||0)+1;save()}
 
+try{ speechSynthesis.getVoices(); }catch(e){}
 let muted=store.get("wqMuted","0")==="1";
 function renderMute(){
  const b=$("mute"); b.textContent=muted?"🔇":"🔊"; b.setAttribute("aria-pressed",muted);
@@ -91,13 +92,34 @@ function toast(t){
  const d=document.createElement("div"); d.className="toast"; d.textContent=t;
  document.body.appendChild(d); setTimeout(()=>d.remove(),1600);
 }
+// ---- voice: pick the most natural English voice the device has (Premium/Enhanced first), or the one the user chose ----
+const BAD_VOICES=/^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Fred|Junior|Ralph|Kathy|Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley)/;
+const PREFERRED_VOICES=["Ava","Samantha","Zoe","Evan","Nicky","Allison","Susan","Tom","Karen","Daniel","Moira","Serena","Aaron"];
+function enVoices(){
+ try{ return speechSynthesis.getVoices().filter(v=>/^en[-_]/i.test(v.lang)&&!BAD_VOICES.test(v.name)); }catch(e){ return []; }
+}
+function voiceScore(v){
+ let sc=0; const id=v.name+" "+v.voiceURI;
+ if(/premium/i.test(id)) sc+=100;
+ if(/enhanced/i.test(id)) sc+=60;
+ const i=PREFERRED_VOICES.findIndex(n=>v.name.startsWith(n)); if(i>=0) sc+=30-i;
+ if(/en[-_]US/i.test(v.lang)) sc+=5;
+ return sc;
+}
+function sortedVoices(){ return enVoices().sort((a,b)=>voiceScore(b)-voiceScore(a)); }
+function pickVoice(){
+ const list=sortedVoices(), saved=store.get("wqVoice","");
+ return (saved&&list.find(v=>v.voiceURI===saved))||list[0]||null;
+}
+const getRate=()=>+store.get("wqRate",0.85)||0.85;
 function say(texts,notify){
  if(muted){ if(notify) toast("🔇 הקול כבוי — אפשר להדליק למעלה"); return; }
  if(!("speechSynthesis" in window)) return;
  try{
   speechSynthesis.cancel();
   // one utterance (word, pause, sentence): iOS Safari tends to drop a second queued utterance
-  const u=new SpeechSynthesisUtterance(texts.filter(Boolean).join(". ... ")); u.lang="en-US"; u.rate=.78;
+  const u=new SpeechSynthesisUtterance(texts.filter(Boolean).join(". ... ")); u.lang="en-US"; u.rate=getRate();
+  const v=pickVoice(); if(v){ u.voice=v; u.lang=v.lang; }
   speechSynthesis.speak(u);
  }catch(e){}
 }
@@ -115,12 +137,12 @@ document.addEventListener("click",e=>{
 });
 
 // the card shown after a word is used: sound button + translation + meaning + example
-function wordCard(w,title){
+function wordCard(w,title,noKnown){
  return `<div class="wcard">
   <button class="sound sm" data-sw="${w.w}" aria-label="השמעה">🔊</button>
   <div>${title?`<div class="wtitle">${title}</div>`:""}
    <b class="en" dir="ltr">${w.w}</b> — ${w.he}
-   <button class="known" data-known="${w.w}">✓ מכירה טוב — להסיר מהמשחקים</button>
+   ${noKnown?"":`<button class="known" data-known="${w.w}">✓ מכירה טוב — להסיר מהמשחקים</button>`}
    ${w.m?`<div class="mean">${w.m}</div>`:""}${w.ex?`<div class="example">${w.ex}</div>`:""}</div></div>`;
 }
 

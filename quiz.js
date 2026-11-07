@@ -1,18 +1,19 @@
 (function(){
 let mode=store.get("wqQuizMode","meaning"), current;
 
+const STEMS={strike:"struck",tumble:"tumbled","doze off":"dozed off"};
+const blankRe=w=>{ const x=(STEMS[w.w]||w.w).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); return new RegExp(w.custom?"\\b\\w*"+x+"\\w*":x,'i'); };
 function options(prop){
  return shuffle([current,...shuffle(words.filter(x=>x!==current)).slice(0,3)]).map(x=>x[prop]);
 }
 function newRound(){
- current=pickWeighted(1,mode==="context"?(w=>w.ex):null)[0];
+ current=pickWeighted(1,mode==="context"?(w=>w.ex&&blankRe(w).test(w.ex)):null)[0];
  let prompt,answers,correct,showWord=true,audioFirst=false;
  if(mode==="meaning"){
   prompt=`מה המשמעות המדויקת ביותר של <b dir="ltr">${current.w}</b>?`;
   correct=current.he; answers=options("he");
  } else if(mode==="context"){
-  const stem={strike:"struck",tumble:"tumbled","doze off":"dozed off"}[current.w]||current.w;
-  const blank=current.ex.replace(new RegExp(stem.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i'),"_____");
+  const blank=current.ex.replace(blankRe(current),"_____");
   prompt=`איזו מילה משלימה בצורה הטובה ביותר את המשפט?<div class="example">"${blank}"</div>`;
   correct=current.w; answers=options("w"); showWord=false;
  } else if(mode==="reverse"){

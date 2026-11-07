@@ -57,3 +57,8 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 .adder{margin:12px 0;background:#f7f7fb;border-radius:14px;padding:4px 12px}.adder summary{padding:11px 0;font-weight:700;font-size:15px;cursor:pointer}
 .dots{display:flex;gap:3px}.d{width:9px;height:9px;border-radius:50%;background:#ececf3;display:block}.d.ok{background:var(--green)}.d.no{background:var(--red)}.st2{flex-wrap:wrap}
 .tot{margin-top:-2px}.tot span{font-weight:600}.tot .g{color:var(--green)}.tot .r{color:var(--red)}.tot .y{color:#b98400}
+.cwwrap{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}.cwwrap .cw{margin:0 auto;max-width:none}.cx.hintd{color:#b86e00;background:#fff0d4}
+.lists li,.wcard,.chip,.clue{overflow-wrap:anywhere}.ws.miss{background:#ffc9ce!important;animation:shake .3s}
+.sent{font-style:italic;color:var(--dark);direction:ltr;text-align:left}.wr .ex{flex-basis:100%}.wr{flex-wrap:wrap}
+.vbox select{width:100%;font:inherit;font-size:15px;padding:10px;border-radius:11px;border:2px solid #e3e3ee;background:#fff;color:var(--dark);margin:6px 0}.vbox .tools{margin:8px 0}.vbox .tools button.on{background:var(--dark);color:#fff}.tip{font-size:12.5px;color:var(--muted);line-height:1.5;margin:6px 0 10px}
+.cl .ex-line{flex-basis:100%;font-size:13px}.cl .ex-line button{width:auto;padding:0 8px;margin-inline-start:6px;height:28px;font-size:12px}

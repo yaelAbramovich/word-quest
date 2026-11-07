@@ -2,14 +2,14 @@
 const SIZE=10;
 const EASY=[[0,1],[1,0],[1,1]];
 const HARD=[[0,1],[1,0],[1,1],[0,-1],[-1,0],[-1,-1],[1,-1],[-1,1]];
-let G, start=null, dragging=false, sel=[];
+let G, els=[], sel=[], dragging=false, moved=false, down=null, anchor=null, anchorT=0, mode="first";
 
 function generate(){
  const hard=store.get("wqHard","0")==="1";
  const dirs=hard?HARD:EASY;
  const grid=Array.from({length:SIZE},()=>Array(SIZE).fill(""));
  const placed=[];
- const ws=pickWeighted(7,w=>letters(w).length<=SIZE).sort((a,b)=>letters(b).length-letters(a).length);
+ const ws=pickWeighted(7,w=>letters(w).length<=SIZE&&letters(w).length>=3).sort((a,b)=>letters(b).length-letters(a).length);
  for(const w of ws){
   const L=letters(w);
   for(let t=0;t<300;t++){
@@ -21,23 +21,31 @@ function generate(){
    for(let i=0;i<L.length&&ok;i++){const x=grid[r+dr*i][c+dc*i]; if(x&&x!==L[i]) ok=false}
    if(!ok) continue;
    for(let i=0;i<L.length;i++) grid[r+dr*i][c+dc*i]=L[i];
-   placed.push({w,L,found:false,idx:placed.length,cells:[]});
+   placed.push({w,L,found:false,idx:placed.length});
    break;
   }
  }
  const pool=ws.map(letters).join("")+"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++) if(!grid[r][c]) grid[r][c]=pool[Math.floor(Math.random()*pool.length)];
- return {grid,placed,hard,colors:{},won:false,hintCell:null};
+ return {grid,placed,hard,colors:{},won:false,hintCell:null,miss:new Set()};
 }
 
-function draw(){
+// The grid is built once and only its classes change while dragging.
+// (Re-creating the cells during a touch drag makes iOS lose the finger.)
+function buildGrid(){
  let h="";
- const selSet=new Set(sel.map(x=>x.join()));
- for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
-  const k=r+","+c, col=G.colors[k];
-  h+=`<div class="ws${selSet.has(k)?" sel":""}${col!==undefined?" f"+col:""}${G.hintCell===k?" hint":""}" data-r="${r}" data-c="${c}">${G.grid[r][c]}</div>`;
- }
+ for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++) h+=`<div class="ws" data-r="${r}" data-c="${c}">${G.grid[r][c]}</div>`;
  $("wsGrid").innerHTML=h;
+ els=[...$("wsGrid").children];
+}
+function paint(){
+ const selSet=new Set(sel.map(x=>x.join()));
+ els.forEach((el,i)=>{
+  const r=Math.floor(i/SIZE), c=i%SIZE, k=r+","+c, col=G.colors[k];
+  el.className="ws"+(selSet.has(k)?" sel":"")+(G.miss.has(k)?" miss":"")+(col!==undefined?" f"+col:"")+(G.hintCell===k?" hint":"");
+ });
+}
+function drawList(){
  $("wsList").innerHTML=G.placed.map(p=>`<span class="chip${p.found?" done f"+p.idx:""}" ${p.found?`data-sw="${p.w.w}"`:""}>${
   p.found?`<b dir="ltr">${p.w.w}</b> — ${p.w.he} 🔊`:G.hard?p.w.he:`<span dir="ltr">${p.w.w}</span>`}</span>`).join("");
  $("wsHard").textContent=G.hard?"🔥 מצב אתגר: פעיל":"🌱 מצב רגיל";
@@ -62,49 +70,66 @@ function line(a,b){
  }
  return out;
 }
+
+// the selection may overshoot by a letter or two: accept any unfound word contained in it (longest first)
 function finish(){
- const s=sel.map(([r,c])=>G.grid[r][c]).join(""), rev=[...s].reverse().join();
- const p=G.placed.find(x=>!x.found&&(x.L===s||x.L===rev));
- if(p&&sel.length>1){
-  p.found=true; sel.forEach(([r,c])=>G.colors[r+","+c]=p.idx);
+ const fwd=sel.map(([r,c])=>G.grid[r][c]).join(""), rev=[...fwd].reverse().join("");
+ const revCells=[...sel].reverse();
+ let hit=null;
+ for(const p of G.placed.filter(x=>!x.found).sort((a,b)=>b.L.length-a.L.length)){
+  let i=fwd.indexOf(p.L);
+  if(i>=0){ hit={p,cells:sel.slice(i,i+p.L.length)}; break; }
+  i=rev.indexOf(p.L);
+  if(i>=0){ hit={p,cells:revCells.slice(i,i+p.L.length)}; break; }
+ }
+ if(hit){
+  const {p,cells}=hit;
+  p.found=true; cells.forEach(([r,c])=>G.colors[r+","+c]=p.idx);
   good(p.w); speakWithSentence(p.w);
-  $("wsInfo").innerHTML=wordCard(p.w,"✓ מצאת!");
+  $("wsInfo").innerHTML=wordCard(p.w,"✓ מצאת!",true);
   if(G.placed.every(x=>x.found)){
    S.score+=30; save(); G.won=true;
    celebrate("מצאת את כל המילים! +30 ⭐");
    $("wsInfo").insertAdjacentHTML("afterbegin",`<div class="win">🎉 כל המילים נמצאו! +30 נקודות בונוס</div>`);
   }
+  sel=[]; drawList(); paint();
+ } else {
+  if(sel.length>1){ // wrong: flash red
+   const keys=sel.map(x=>x.join()); keys.forEach(k=>G.miss.add(k));
+   const g=G; setTimeout(()=>{keys.forEach(k=>g.miss.delete(k)); if(g===G) paint()},450);
+  }
+  sel=[]; paint();
  }
- sel=[]; draw();
 }
 
 function bind(grid){
  grid.addEventListener("pointerdown",e=>{
   const c=cellAt(e.clientX,e.clientY); if(!c||G.won) return;
-  G.hintCell=null;
-  if(start&&!dragging){ // second tap of a tap-tap selection
-   sel=line(start,c); start=null; finish(); return;
-  }
-  dragging=true; start=c; sel=[c]; draw();
+  try{ grid.setPointerCapture(e.pointerId); }catch(x){}
+  G.hintCell=null; dragging=true; moved=false; down=c;
+  mode=(anchor&&Date.now()-anchorT<6000)?"second":"first";
+  sel=[c]; paint();
  });
  grid.addEventListener("pointermove",e=>{
   if(!dragging) return;
   const c=cellAt(e.clientX,e.clientY); if(!c) return;
-  sel=line(start,c); draw();
+  if(c[0]!==down[0]||c[1]!==down[1]){ moved=true; mode="first"; anchor=null; }
+  if(moved){ sel=line(down,c); paint(); }
  });
- const up=e=>{
+ const up=()=>{
   if(!dragging) return;
   dragging=false;
-  if(sel.length>1){ start=null; finish(); }   // dragged
-  else draw();                                  // tapped: wait for the second tap
+  if(moved){ anchor=null; finish(); return; }          // dragged across letters
+  if(mode==="second"){ sel=line(anchor,down); anchor=null; finish(); return; }  // second tap
+  anchor=down; anchorT=Date.now(); sel=[down]; paint(); // first tap: wait for the second one
  };
  grid.addEventListener("pointerup",up);
- grid.addEventListener("pointercancel",()=>{dragging=false;start=null;sel=[];draw()});
+ grid.addEventListener("pointercancel",up);   // iOS sometimes ends a drag with "cancel"
 }
 
 function newGame(){
- G=generate(); start=null; dragging=false; sel=[];
- $("wsInfo").innerHTML=""; draw();
+ G=generate(); sel=[]; dragging=false; moved=false; anchor=null;
+ $("wsInfo").innerHTML=""; buildGrid(); drawList(); paint();
 }
 function hint(){
  const left=G.placed.filter(p=>!p.found); if(!left.length) return;
@@ -113,7 +138,7 @@ function hint(){
  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)for(const [dr,dc] of HARD){
   let ok=true;
   for(let i=0;i<p.L.length&&ok;i++){const rr=r+dr*i,cc=c+dc*i; if(rr<0||cc<0||rr>=SIZE||cc>=SIZE||G.grid[rr][cc]!==p.L[i]) ok=false}
-  if(ok){ G.hintCell=r+","+c; draw(); return; }
+  if(ok){ G.hintCell=r+","+c; paint(); return; }
  }
 }
 

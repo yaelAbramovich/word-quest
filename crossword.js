@@ -47,7 +47,7 @@ function build(ws){
 function generate(){
  let best=null;
  for(let t=0;t<60;t++){
-  const ent=build(pickWeighted(9,w=>letters(w).length>=3));
+  const ent=build(pickWeighted(9,w=>letters(w).length>=3&&letters(w).length<=11));
   if(ent.length<6) continue;
   const r0=Math.min(...ent.map(e=>e.r)), c0=Math.min(...ent.map(e=>e.c));
   const r1=Math.max(...ent.map(e=>e.r+(e.d?e.L.length-1:0))), c1=Math.max(...ent.map(e=>e.c+(e.d?0:e.L.length-1)));
@@ -58,7 +58,7 @@ function generate(){
   if(ent.length>=8) break;
  }
  if(!best){ // fallback: should be very rare
-  const ent=build(pickWeighted(5,w=>letters(w).length>=3));
+  const ent=build(pickWeighted(5,w=>letters(w).length>=3&&letters(w).length<=11));
   const r0=Math.min(...ent.map(e=>e.r)), c0=Math.min(...ent.map(e=>e.c));
   best={ent,r0,c0,
    W:Math.max(...ent.map(e=>e.c+(e.d?0:e.L.length)))-c0,
@@ -70,7 +70,7 @@ function generate(){
  entries.forEach((e,i)=>{
   for(let k=0;k<e.L.length;k++){
    const r=e.r+(e.d?k:0), c=e.c+(e.d?0:k);
-   const cell=cells[r][c]||(cells[r][c]={ch:e.L[k],val:"",locked:false,num:0,ents:[-1,-1]});
+   const cell=cells[r][c]||(cells[r][c]={ch:e.L[k],val:"",hint:false,locked:false,num:0,ents:[-1,-1]});
    cell.ents[e.d]=i; e.cells.push([r,c]);
   }
  });
@@ -94,9 +94,10 @@ function draw(){
   const cell=P.cells[r][c];
   if(!cell){h+=`<div class="cx off"></div>`;continue}
   const k=r+","+c;
-  h+=`<div class="cx${inCur.has(k)?" in":""}${r===ar&&c===ac?" act":""}${cell.locked?" ok":""}${P.bad.has(k)?" bad":""}" data-r="${r}" data-c="${c}">${cell.num?`<i>${cell.num}</i>`:""}${cell.val}</div>`;
+  h+=`<div class="cx${inCur.has(k)?" in":""}${r===ar&&c===ac?" act":""}${cell.locked?" ok":cell.hint?" hintd":""}${P.bad.has(k)?" bad":""}" data-r="${r}" data-c="${c}">${cell.num?`<i>${cell.num}</i>`:""}${cell.val}</div>`;
  }
- $("cwGrid").style.gridTemplateColumns=`repeat(${P.W},1fr)`;
+ $("cwGrid").style.gridTemplateColumns=`repeat(${P.W},minmax(0,1fr))`;
+ $("cwGrid").style.width=`max(100%,${P.W*28}px)`;
  $("cwGrid").innerHTML=h;
  $("cwClue").innerHTML=`<b>${e.num} ${e.d?"אנכי ⬇":"אופקי ➡"}</b> · ${e.w.he} <small>(${e.L.length} אותיות)</small>`;
  const list=d=>P.entries.map((x,i)=>x.d===d?`<li data-e="${i}" class="${x.solved?"done":""}${i===P.ei?" cur":""}">${x.num}. ${x.solved?`<b dir="ltr">${x.w.w}</b> — `:""}${x.w.he}</li>`:"").join("");
@@ -166,11 +167,22 @@ function key(k){
 
 function hint(){
  if(P.won) return;
- const [r,c]=activeCell(), cell=P.cells[r][c];
- if(!cell.locked){ cell.val=cell.ch; cell.ents.filter(i=>i>=0).forEach(i=>P.entries[i].hinted=true); }
+ if(cur().solved){ const n=P.entries.findIndex(x=>!x.solved); if(n<0) return; select(n); }
+ const e=cur();
+ // reveal the first letter of this word that is still empty or wrong
+ const ci=e.cells.findIndex(([r,c])=>{const x=P.cells[r][c]; return !x.locked&&x.val!==x.ch});
+ if(ci<0) return;
+ const [r,c]=e.cells[ci], cell=P.cells[r][c];
+ cell.val=cell.ch; cell.hint=true;
+ cell.ents.filter(i=>i>=0).forEach(i=>P.entries[i].hinted=true);
+ P.ci=ci;
  const before=P.entries.filter(x=>x.solved).length;
  cell.ents.filter(i=>i>=0).forEach(check);
- if(P.entries.filter(x=>x.solved).length===before) draw();
+ if(P.entries.filter(x=>x.solved).length===before){
+  const nx=e.cells.findIndex(([rr,cc])=>{const x=P.cells[rr][cc]; return !x.locked&&x.val!==x.ch});
+  if(nx>=0) P.ci=nx;
+  draw();
+ }
 }
 function reveal(){
  if(P.won||cur().solved) return;
@@ -186,7 +198,7 @@ function newPuzzle(){
 games.crossword={render(c){
  c.innerHTML=`<span class="tag">🧩 תשבץ</span>
  <p class="sub">בחרי משבצת, הקלידי באנגלית. כשמילה נכונה — תשמעי אותה ותראי את התרגום.</p>
- <div class="cw" id="cwGrid" dir="ltr"></div>
+ <div class="cwwrap"><div class="cw" id="cwGrid" dir="ltr"></div></div>
  <div class="clue" id="cwClue"></div>
  <div id="cwInfo"></div>
  ${keyboardHTML(true)}

@@ -35,7 +35,7 @@ function end(won){
  if(won){ good(H.w); celebrate("יפה מאוד! 🎉"); } else bad(H.w);
  speakWithSentence(H.w);
  draw();
- $("hmInfo").innerHTML=wordCard(H.w,won?"✓ ניצלת את האיש!":"😢 הפעם לא הצלחנו — המילה הייתה:");
+ $("hmInfo").innerHTML=wordCard(H.w,won?"✓ ניצלת את האיש!":"😢 הפעם לא הצלחנו — המילה הייתה:",true);
 }
 function key(ch){
  if(H.done||H.guessed.has(ch)) return;
