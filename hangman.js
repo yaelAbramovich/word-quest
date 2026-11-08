@@ -52,8 +52,7 @@ function hint(){
 }
 
 games.hangman={render(c){
- c.innerHTML=`<span class="tag">🪢 איש תלוי</span>
- <p class="sub">הקשיבי למילה, קראי את התרגום, והשלימי את האיות באנגלית.</p>
+ c.innerHTML=`<p class="sub">הקשיבי למילה, קראי את התרגום, והשלימי את האיות באנגלית.</p>
  <div class="tools top"><button id="hmHear">🔊 השמעה</button><button id="hmHint">💡 רמז (עולה חיים)</button></div>
  <button class="next top" id="hmNext" disabled>למילה הבאה ←</button>
  <div class="hm"><svg id="hmSvg" viewBox="0 0 120 140" width="150" height="175" aria-hidden="true"></svg><div id="hmLives" class="lives"></div></div>

@@ -25,7 +25,6 @@ function newRound(){
  }
  $("qgame").innerHTML=`
  <button class="next top" id="next" disabled>לאתגר הבא ←</button>
- <span class="tag">${{meaning:"🧠 הבנת משמעות",context:"📖 מילה בהקשר",reverse:"🎯 שליפה מהזיכרון",listen:"🔊 האזנה"}[mode]}</span>
  ${showWord?`<div class="word" id="wordBtn" data-say="${current.w}">${current.w}</div><div class="hint">לחצי כדי לשמוע את ההגייה</div>`:""}
  <button class="sound" data-say="${current.w}" aria-label="השמעת מילה">🔊</button>
  <div class="prompt">${prompt}</div>

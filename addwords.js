@@ -72,7 +72,7 @@ function drawCustom(){
  const learning=st.filter(t=>t.n&&t.pct===null).length, fresh=st.filter(t=>!t.n).length;
  const avg=withPct.length?Math.round(withPct.reduce((x,t)=>x+t.pct,0)/withPct.length):null;
  const row=(w,btns,extra)=>`<li><span><b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span>${btns}${extra||""}</li>`;
- const exLine=w=>(w.ex||w.custom)?`<div class="st2 ex-line"><span class="sent">${w.ex?esc(w.ex):"אין עדיין משפט"}</span>${w.ex?`<button data-copy="${esc(w.ex)}" aria-label="העתקת משפט">📋</button>`:""}${w.custom?`<button data-edit="${esc(w.w)}">✏️ ${w.ex?"עריכה":"הוספת משפט"}</button><button data-another="${esc(w.w)}">🔄 ${w.ex?"משפט אחר":"חיפוש משפט"}</button>`:""}</div>`:"";
+ const exLine=w=>(w.ex||w.custom)?`<div class="st2 ex-line"><span class="sent">${w.ex?esc(w.ex):"אין עדיין משפט"}</span>${w.ex?`<button data-copy="${esc(w.ex)}" aria-label="העתקת משפט"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button>`:""}${w.custom?`<button data-edit="${esc(w.w)}">✏️ ${w.ex?"עריכה":"הוספת משפט"}</button><button data-another="${esc(w.w)}">🔄 ${w.ex?"משפט אחר":"חיפוש משפט"}</button>`:""}</div>`:"";
  const rec=words.filter(w=>wstat(w).mastered);
  const missing=customWords().filter(w=>!w.ex&&!hidden.has(w.w)).length;
  const sb=(k,t)=>`<button data-sort="${k}" class="${sortBy===k?"on":""}">${t}</button>`;
@@ -82,7 +82,7 @@ function drawCustom(){
  <div class="sum">${withPct.length} מילים עם אחוז${avg===null?"":` (ממוצע ${avg}%)`} · ${learning} בלמידה · ${fresh} חדשות${rec.length?` · 💡 ${rec.length} מומלצות להסרה`:""}</div>
  ${rec.length?`<button class="next" style="display:block;margin:8px 0;background:var(--green)" data-removerec>💡 הסרת ${rec.length} המילים המומלצות להסרה</button>`:""}
  <div class="tools sorts">${sb("weak","הכי חלשות")}${sb("strong","הכי חזקות")}${sb("alpha","א-ב")}</div>
- <ul class="cl">${act.map(w=>row(w,`<button data-copy="${esc(w.w)}" aria-label="העתקת מילה">📋</button><button data-say="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-hide="${esc(w.w)}" aria-label="מכירה טוב" title="מכירה טוב">✓</button>${w.custom?`<button data-rm="${esc(w.w)}" aria-label="מחיקה">✕</button>`:""}`,statLine(w)+exLine(w))).join("")}</ul>`+
+ <ul class="cl">${act.map(w=>row(w,`<button data-copy="${esc(w.w)}" aria-label="העתקת מילה"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button><button data-say="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-hide="${esc(w.w)}" aria-label="מכירה טוב" title="מכירה טוב">✓</button>${w.custom?`<button data-rm="${esc(w.w)}" aria-label="מחיקה">✕</button>`:""}`,statLine(w)+exLine(w))).join("")}</ul>`+
  (gone.length?`<h4>מילים שהוסרו (${gone.length})</h4><ul class="cl">${gone.map(w=>row(w,`<button data-restore="${esc(w.w)}" class="wide" aria-label="החזרה">↩ החזרה</button>`)).join("")}</ul>`:"");
 }
 

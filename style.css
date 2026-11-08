@@ -64,3 +64,4 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 .cl .ex-line{flex-basis:100%;font-size:13px}.cl .ex-line button{width:auto;padding:0 8px;margin-inline-start:6px;height:28px;font-size:12px}
 .example{display:block;overflow-wrap:anywhere}.tools.top{margin:10px 0 12px}.next.top{display:block;margin:0 0 12px}.next:disabled{opacity:.35}.next.top+.tag{margin-top:2px}
 .cl button[data-copy]{width:36px}
+.cl button[data-copy]{display:grid;place-items:center;color:var(--dark)}

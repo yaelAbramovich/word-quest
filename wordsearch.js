@@ -143,8 +143,7 @@ function hint(){
 }
 
 games.wordsearch={render(c){
- c.innerHTML=`<span class="tag">🔎 תפזורת</span>
- <p class="sub">גררי את האצבע על האותיות (או לחצי על האות הראשונה ואז על האחרונה). כל מילה שנמצאה — נשמעת ומתורגמת.</p>
+ c.innerHTML=`<p class="sub">גררי את האצבע על האותיות (או לחצי על האות הראשונה ואז על האחרונה). כל מילה שנמצאה — נשמעת ומתורגמת.</p>
  <div class="tools top"><button id="wsHintBtn">💡 רמז</button><button id="wsHard"></button><button id="wsNew">🔄 תפזורת חדשה</button></div>
  <div class="wsgrid" id="wsGrid" dir="ltr"></div>
  <div class="chips" id="wsList"></div>
