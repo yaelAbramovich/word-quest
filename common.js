@@ -129,6 +129,17 @@ function speakWithSentence(w,notify){ say([w.w,w.ex],notify); }
 document.addEventListener("click",e=>{
  const m=e.target.closest("#mute");
  if(m){ muted=!muted; store.set("wqMuted",muted?"1":"0"); if(muted){try{speechSynthesis.cancel()}catch(x){}} renderMute(); return; }
+ const an=e.target.closest("[data-another]");
+ if(an){
+  const w=allWords.find(x=>x.w===an.dataset.another); if(!w) return;
+  an.disabled=true; an.textContent="מחפשת…";
+  anotherSentence(w).then(x=>{
+   an.disabled=false; an.textContent="🔄 משפט אחר";
+   const ex=an.closest(".wcard")?.querySelector(".example");
+   if(x&&ex){ ex.textContent=x; ex.style.display=""; speakWithSentence(w); }
+  });
+  return;
+ }
  const k=e.target.closest("[data-known]");
  if(k){ const w=allWords.find(x=>x.w===k.dataset.known); if(w&&hideWord(w)){ k.textContent="✓ הוסרה. אפשר להחזיר בלשונית מילים"; k.disabled=true; } return; }
  const f=e.target.closest("[data-sw]");
@@ -143,13 +154,60 @@ function wordCard(w,title,noKnown){
   <div>${title?`<div class="wtitle">${title}</div>`:""}
    <b class="en" dir="ltr">${w.w}</b> — ${w.he}
    ${noKnown?"":`<button class="known" data-known="${w.w}">✓ מכירה טוב — להסיר מהמשחקים</button>`}
-   ${w.m?`<div class="mean">${w.m}</div>`:""}${w.ex?`<div class="example">${w.ex}</div>`:""}</div></div>`;
+   ${w.m?`<div class="mean">${w.m}</div>`:""}${w.ex||w.custom?`<div class="example"${w.ex?"":' style="display:none"'}>${w.ex}</div>`:""}
+   ${w.custom?`<button class="known" data-another="${w.w}">🔄 משפט אחר</button>`:""}</div></div>`;
 }
 
 function celebrate(msg){
  const d=document.createElement("div"); d.className="cele";
  d.innerHTML=`<div class="rain">${Array.from({length:14},(_,i)=>`<span style="left:${Math.random()*92}%;animation-delay:${(Math.random()*.5).toFixed(2)}s">${["🎉","⭐","✨","🎊"][i%4]}</span>`).join("")}</div><div class="msg">${msg}</div>`;
  document.body.appendChild(d); setTimeout(()=>d.remove(),2000);
+}
+
+
+// ---- copy to clipboard ----
+async function copyText(t){
+ try{ await navigator.clipboard.writeText(t); }
+ catch(e){
+  const a=document.createElement("textarea"); a.value=t; a.style.position="fixed"; a.style.opacity="0";
+  document.body.appendChild(a); a.select(); try{ document.execCommand("copy"); }catch(x){} a.remove();
+ }
+ toast("הועתק ✓");
+}
+
+// ---- example sentences for words you add (Wiktionary: works from a web page, but does not know every word) ----
+const saveCustom=()=>store.set("wqCustom",JSON.stringify(allWords.filter(w=>w.custom)));
+const exCache={};
+function cleanEx(t){
+ const d=document.createElement("textarea"); d.innerHTML=t.replace(/<[^>]+>/g,"");
+ let x=d.value.replace(/\s+/g," ").trim();
+ if(/^[A-Z]/.test(x)&&x.split(" ").length>=4&&!/[.!?"”]$/.test(x)) x+=".";
+ return x;
+}
+async function sentenceCandidates(word){
+ if(exCache[word]) return exCache[word];
+ let good=[];
+ try{
+  const r=await fetch("https://en.wiktionary.org/api/rest_v1/page/definition/"+encodeURIComponent(word));
+  if(r.ok){
+   const j=await r.json(), ex=[];
+   for(const sec of (j.en||[])) for(const d of sec.definitions) for(const e of (d.examples||[])) ex.push(cleanEx(e));
+   const first=word.split(" ")[0], stem=first.length>4?first.replace(/(ing|ed|es|ly|s|e)$/,""):first;
+   const re=new RegExp("\\b"+stem.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i");
+   good=[...new Set(ex.filter(x=>x.length>=15&&x.length<=140&&re.test(x)))];
+   good.sort((a,b)=>(/^[A-Z].*[.!?]$/.test(b)-/^[A-Z].*[.!?]$/.test(a))||Math.abs(a.length-60)-Math.abs(b.length-60));
+  }
+ }catch(e){}
+ return exCache[word]=good;
+}
+async function findSentence(word){ return (await sentenceCandidates(word))[0]||null; }
+// replace the sentence with the next candidate; returns it (or null when there is no other one)
+async function anotherSentence(w){
+ const c=await sentenceCandidates(w.w);
+ const i=c.indexOf(w.ex), next=c.length?c[(i+1)%c.length]:null;
+ if(!next||next===w.ex){ toast(c.length?"זה המשפט היחיד שמצאתי למילה הזו. אפשר לכתוב משפט ב-✏️ בלשונית מילים":"לא מצאתי משפטים למילה הזו. אפשר לכתוב משפט ב-✏️ בלשונית מילים"); return null; }
+ w.ex=next; saveCustom(); document.dispatchEvent(new Event("sentencechanged"));
+ return next;
 }
 
 // on-screen English keyboard (works on iPhone even when the phone keyboard is Hebrew)

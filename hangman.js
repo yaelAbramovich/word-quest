@@ -27,7 +27,7 @@ function draw(){
   k.classList.toggle("hit",used&&H.L.includes(ch));
   k.classList.toggle("miss",used&&!H.L.includes(ch));
  });
- $("hmNext").style.display=H.done?"block":"none";
+ $("hmNext").disabled=!H.done;
 }
 
 function end(won){
@@ -54,13 +54,14 @@ function hint(){
 games.hangman={render(c){
  c.innerHTML=`<span class="tag">🪢 איש תלוי</span>
  <p class="sub">הקשיבי למילה, קראי את התרגום, והשלימי את האיות באנגלית.</p>
+ <div class="tools top"><button id="hmHear">🔊 השמעה</button><button id="hmHint">💡 רמז (עולה חיים)</button></div>
+ <button class="next top" id="hmNext" disabled>למילה הבאה ←</button>
  <div class="hm"><svg id="hmSvg" viewBox="0 0 120 140" width="150" height="175" aria-hidden="true"></svg><div id="hmLives" class="lives"></div></div>
  <div class="clue" id="hmClue"></div>
  <div class="hword" id="hmWord" dir="ltr"></div>
  ${keyboardHTML(false)}
  <div id="hmInfo"></div>
- <div class="tools"><button id="hmHear">🔊 השמעה</button><button id="hmHint">💡 רמז (עולה חיים)</button></div>
- <button class="next" id="hmNext">למילה הבאה ←</button>`;
+`;
  bindKeyboard(c,key);
  $("hmHear").onclick=()=>speak(H.w.w,true);
  $("hmHint").onclick=hint;

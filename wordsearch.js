@@ -145,10 +145,10 @@ function hint(){
 games.wordsearch={render(c){
  c.innerHTML=`<span class="tag">🔎 תפזורת</span>
  <p class="sub">גררי את האצבע על האותיות (או לחצי על האות הראשונה ואז על האחרונה). כל מילה שנמצאה — נשמעת ומתורגמת.</p>
+ <div class="tools top"><button id="wsHintBtn">💡 רמז</button><button id="wsHard"></button><button id="wsNew">🔄 תפזורת חדשה</button></div>
  <div class="wsgrid" id="wsGrid" dir="ltr"></div>
  <div class="chips" id="wsList"></div>
- <div id="wsInfo"></div>
- <div class="tools"><button id="wsHintBtn">💡 רמז</button><button id="wsHard"></button><button id="wsNew">🔄 תפזורת חדשה</button></div>`;
+ <div id="wsInfo"></div>`;
  bind($("wsGrid"));
  $("wsNew").onclick=newGame; $("wsHintBtn").onclick=hint;
  $("wsHard").onclick=()=>{store.set("wqHard",store.get("wqHard","0")==="1"?"0":"1"); newGame()};

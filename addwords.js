@@ -4,7 +4,6 @@ let rows=[];
 
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const customWords=()=>allWords.filter(w=>w.custom);
-const saveCustom=()=>store.set("wqCustom",JSON.stringify(customWords()));
 
 function loadTesseract(){
  return new Promise((ok,fail)=>{
@@ -46,27 +45,6 @@ function parseText(text){
  return out;
 }
 
-// find a real example sentence for a word (Wiktionary; works from a web page, but does not know every word)
-function cleanEx(t){
- const d=document.createElement("textarea"); d.innerHTML=t.replace(/<[^>]+>/g,"");
- let x=d.value.replace(/\s+/g," ").trim();
- if(/^[A-Z]/.test(x)&&x.split(" ").length>=4&&!/[.!?"”]$/.test(x)) x+=".";
- return x;
-}
-async function findSentence(word){
- try{
-  const r=await fetch("https://en.wiktionary.org/api/rest_v1/page/definition/"+encodeURIComponent(word));
-  if(!r.ok) return null;
-  const j=await r.json(), ex=[];
-  for(const sec of (j.en||[])) for(const d of sec.definitions) for(const e of (d.examples||[])) ex.push(cleanEx(e));
-  const first=word.split(" ")[0], stem=first.length>4?first.replace(/(ing|ed|es|ly|s|e)$/,""):first;
-  const re=new RegExp("\\b"+stem.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i");
-  const good=ex.filter(x=>x.length>=15&&x.length<=140&&re.test(x));
-  good.sort((a,b)=>(/^[A-Z].*[.!?]$/.test(b)-/^[A-Z].*[.!?]$/.test(a))||Math.abs(a.length-60)-Math.abs(b.length-60));
-  return good[0]||null;
- }catch(e){ return null; }
-}
-
 function drawRows(){
  $("awRows").innerHTML=rows.map((r,i)=>`<div class="wr"><input class="en" dir="ltr" data-i="${i}" data-f="en" placeholder="English" value="${esc(r.en)}" autocapitalize="none" autocorrect="off"><input data-i="${i}" data-f="he" placeholder="תרגום" value="${esc(r.he)}"><button data-del="${i}" aria-label="מחיקה">✕</button><input class="ex" dir="ltr" data-i="${i}" data-f="ex" placeholder="משפט באנגלית (לא חובה — אם ריק אחפש לבד)" value="${esc(r.ex||"")}" autocapitalize="none"></div>`).join("");
  $("awSave").style.display=rows.length?"block":"none";
@@ -94,15 +72,17 @@ function drawCustom(){
  const learning=st.filter(t=>t.n&&t.pct===null).length, fresh=st.filter(t=>!t.n).length;
  const avg=withPct.length?Math.round(withPct.reduce((x,t)=>x+t.pct,0)/withPct.length):null;
  const row=(w,btns,extra)=>`<li><span><b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span>${btns}${extra||""}</li>`;
- const exLine=w=>w.custom?`<div class="st2 ex-line"><span class="sent">${w.ex?esc(w.ex):"אין עדיין משפט"}</span><button data-edit="${esc(w.w)}">✏️ ${w.ex?"עריכה":"הוספת משפט"}</button><button data-find="${esc(w.w)}">🔍 חיפוש</button></div>`:"";
+ const exLine=w=>(w.ex||w.custom)?`<div class="st2 ex-line"><span class="sent">${w.ex?esc(w.ex):"אין עדיין משפט"}</span>${w.ex?`<button data-copy="${esc(w.ex)}" aria-label="העתקת משפט">📋</button>`:""}${w.custom?`<button data-edit="${esc(w.w)}">✏️ ${w.ex?"עריכה":"הוספת משפט"}</button><button data-another="${esc(w.w)}">🔄 ${w.ex?"משפט אחר":"חיפוש משפט"}</button>`:""}</div>`:"";
+ const rec=words.filter(w=>wstat(w).mastered);
  const missing=customWords().filter(w=>!w.ex&&!hidden.has(w.w)).length;
  const sb=(k,t)=>`<button data-sort="${k}" class="${sortBy===k?"on":""}">${t}</button>`;
  $("awList").innerHTML=`<h4>המילים במשחקים (${words.length})</h4>
  <p class="sub">האחוז נמדד רק בתשבץ ובחידון, ומופיע אחרי ${WINDOW} ניסיונות (הנקודות מראות את התוצאות: ירוק = ידעת). הוא מבוסס על ${WINDOW} הניסיונות האחרונים. 100% = כל הניסיונות נכונים, עם הצלחות ב-${DAYS_FOR_100} ימים שונים. בפחות ימים — המקסימום 90%. רמז או "גלי מילה" נחשבים כאילו לא ידעת. מילים חדשות וחלשות יופיעו יותר. בנוסף, מתחת לכל מילה מוצגת הספירה הכוללת מאז ומעולם: הצלחות, טעויות וכמה פעמים נעזרת ברמז.</p>
  ${missing?`<button class="next" style="display:block;margin:8px 0" data-fillall>🔍 חיפוש משפטים ל-${missing} מילים שחסר להן</button>`:""}
- <div class="sum">${withPct.length} מילים עם אחוז${avg===null?"":` (ממוצע ${avg}%)`} · ${learning} בלמידה · ${fresh} חדשות</div>
+ <div class="sum">${withPct.length} מילים עם אחוז${avg===null?"":` (ממוצע ${avg}%)`} · ${learning} בלמידה · ${fresh} חדשות${rec.length?` · 💡 ${rec.length} מומלצות להסרה`:""}</div>
+ ${rec.length?`<button class="next" style="display:block;margin:8px 0;background:var(--green)" data-removerec>💡 הסרת ${rec.length} המילים המומלצות להסרה</button>`:""}
  <div class="tools sorts">${sb("weak","הכי חלשות")}${sb("strong","הכי חזקות")}${sb("alpha","א-ב")}</div>
- <ul class="cl">${act.map(w=>row(w,`<button data-say="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-hide="${esc(w.w)}" aria-label="מכירה טוב" title="מכירה טוב">✓</button>${w.custom?`<button data-rm="${esc(w.w)}" aria-label="מחיקה">✕</button>`:""}`,statLine(w)+exLine(w))).join("")}</ul>`+
+ <ul class="cl">${act.map(w=>row(w,`<button data-copy="${esc(w.w)}" aria-label="העתקת מילה">📋</button><button data-say="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-hide="${esc(w.w)}" aria-label="מכירה טוב" title="מכירה טוב">✓</button>${w.custom?`<button data-rm="${esc(w.w)}" aria-label="מחיקה">✕</button>`:""}`,statLine(w)+exLine(w))).join("")}</ul>`+
  (gone.length?`<h4>מילים שהוסרו (${gone.length})</h4><ul class="cl">${gone.map(w=>row(w,`<button data-restore="${esc(w.w)}" class="wide" aria-label="החזרה">↩ החזרה</button>`)).join("")}</ul>`:"");
 }
 
@@ -196,9 +176,11 @@ games.addwords={render(c){
   if(ed){ const w=allWords.find(x=>x.custom&&x.w===ed.dataset.edit); if(!w) return;
    const v=prompt(`משפט באנגלית עם המילה "${w.w}":`,w.ex||""); if(v===null) return;
    w.ex=v.trim(); saveCustom(); drawCustom(); return; }
-  const fd=e.target.closest("[data-find]");
-  if(fd){ const w=allWords.find(x=>x.custom&&x.w===fd.dataset.find); if(!w) return;
-   toast("מחפשת משפט…"); findSentence(w.w).then(x=>{ if(x){ w.ex=x; saveCustom(); drawCustom(); toast("נמצא משפט ✓"); } else toast("לא מצאתי משפט — אפשר לכתוב ידנית ב-✏️"); }); return; }
+  const cp=e.target.closest("[data-copy]"); if(cp){ copyText(cp.dataset.copy); return; }
+  if(e.target.closest("[data-removerec]")){
+   const rec=words.filter(w=>wstat(w).mastered);
+   if(confirm(`להסיר ${rec.length} מילים שאת מכירה היטב מהמשחקים? אפשר להחזיר אותן בהמשך.`)){ for(const w of rec) if(!hideWord(w)) break; drawCustom(); }
+   return; }
   if(e.target.closest("[data-fillall]")){ fillSentences(customWords().filter(w=>!w.ex&&!hidden.has(w.w))); return; }
   const so=e.target.closest("[data-sort]");
   if(so){ sortBy=so.dataset.sort; store.set("wqSort",sortBy); drawCustom(); return; }
@@ -210,6 +192,7 @@ games.addwords={render(c){
   const i=allWords.findIndex(w=>w.custom&&w.w===d.dataset.rm); if(i>=0) allWords.splice(i,1);
   hidden.delete(d.dataset.rm); saveHidden(); saveCustom(); applyHidden(); renderStats(); drawCustom();
  });
+ document.addEventListener("sentencechanged",()=>{ if($("awList")) drawCustom(); },{once:false});
  drawRows(); drawCustom();
 }};
 })();

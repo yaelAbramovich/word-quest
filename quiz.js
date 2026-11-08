@@ -24,13 +24,14 @@ function newRound(){
   correct=current.he; answers=options("he"); showWord=false; audioFirst=true;
  }
  $("qgame").innerHTML=`
+ <button class="next top" id="next" disabled>לאתגר הבא ←</button>
  <span class="tag">${{meaning:"🧠 הבנת משמעות",context:"📖 מילה בהקשר",reverse:"🎯 שליפה מהזיכרון",listen:"🔊 האזנה"}[mode]}</span>
  ${showWord?`<div class="word" id="wordBtn" data-say="${current.w}">${current.w}</div><div class="hint">לחצי כדי לשמוע את ההגייה</div>`:""}
  <button class="sound" data-say="${current.w}" aria-label="השמעת מילה">🔊</button>
  <div class="prompt">${prompt}</div>
  <div class="answers">${answers.map(a=>`<button class="answer">${a}</button>`).join("")}</div>
  <div class="feedback" id="feedback"></div>
- <button class="next" id="next">לאתגר הבא ←</button>`;
+`;
  document.querySelectorAll(".answer").forEach(b=>b.onclick=()=>answer(b,correct));
  $("next").onclick=newRound;
  if(audioFirst) setTimeout(()=>speak(current.w),300);
@@ -53,7 +54,7 @@ function answer(button,correct){
   fb.innerHTML=`<b>לא נורא — זו בדיוק הסיבה שאנחנו מתרגלים.</b><br><br><b dir="ltr">${current.w}</b> = ${current.he}${current.m?`<br>${current.m}`:""}${current.ex?`<br><br><span class="example">${current.ex}</span>`:""}`;
  }
  speakWithSentence(current);
- $("next").style.display="block";
+ $("next").disabled=false;
 }
 
 games.quiz={render(c){

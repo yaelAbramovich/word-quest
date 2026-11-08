@@ -198,11 +198,11 @@ function newPuzzle(){
 games.crossword={render(c){
  c.innerHTML=`<span class="tag">🧩 תשבץ</span>
  <p class="sub">בחרי משבצת, הקלידי באנגלית. כשמילה נכונה — תשמעי אותה ותראי את התרגום.</p>
+ <div class="tools top"><button id="cwHint">💡 רמז</button><button id="cwReveal">👁 גלי מילה</button><button id="cwNew">🔄 תשבץ חדש</button></div>
  <div class="cwwrap"><div class="cw" id="cwGrid" dir="ltr"></div></div>
  <div class="clue" id="cwClue"></div>
  <div id="cwInfo"></div>
  ${keyboardHTML(true)}
- <div class="tools"><button id="cwHint">💡 רמז</button><button id="cwReveal">👁 גלי מילה</button><button id="cwNew">🔄 תשבץ חדש</button></div>
  <div class="lists" id="cwLists"></div>`;
  bindKeyboard(c,key);
  $("cwGrid").addEventListener("click",ev=>{
