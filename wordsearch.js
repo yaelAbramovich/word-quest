@@ -42,7 +42,7 @@ function paint(){
  const selSet=new Set(sel.map(x=>x.join()));
  els.forEach((el,i)=>{
   const r=Math.floor(i/SIZE), c=i%SIZE, k=r+","+c, col=G.colors[k];
-  el.className="ws"+(selSet.has(k)?" sel":"")+(G.miss.has(k)?" miss":"")+(col!==undefined?" f"+col:"")+(G.hintCell===k?" hint":"");
+  el.className="ws"+(selSet.has(k)?" sel":"")+(G.miss.has(k)?" miss":"")+(col!==undefined?" f"+col:"")+(G.hintCell===k?" hinted":"");
  });
 }
 function drawList(){
