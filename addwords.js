@@ -143,7 +143,7 @@ function fillVoices(){
 function markRate(){ document.querySelectorAll("[data-rate]").forEach(b=>b.classList.toggle("on",+b.dataset.rate===getRate())); }
 
 games.addwords={render(c){
- c.innerHTML=`<span class="tag">📊 סטטיסטיקה וניהול מילים</span>
+ c.innerHTML=`
  <details class="adder vbox"><summary>🗣️ קול והגייה</summary>
  <div class="st" id="vNow"></div>
  <select id="vSel" aria-label="בחירת קול"></select>
