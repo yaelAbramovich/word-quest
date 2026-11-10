@@ -1,9 +1,9 @@
 (function(){
 // Flashcards over ALL words, including the ones you removed as "known", so they are not forgotten.
 // Spaced repetition: a correct answer moves the card to a longer interval, a wrong one brings it back today.
-const GAPS=[0,1,2,4,7,14,30], SESSION=15;
+const GAPS=[0,1,2,4,7,14,30], MAX_PASSES=3;
 const dayNum=()=>Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5);
-let dir=store.get("wqCardDir","en"), queue=[], cur=null, shown=false, done=0, okN=0, noN=0, retried=new Set();
+let dir=store.get("wqCardDir","en"), queue=[], again=[], pass=1, cur=null, shown=false, okN=0, noN=0, retried=new Set();
 
 const isDue=w=>{const c=S.cards[w.w]; return !c||c.d<=dayNum()};
 function dueList(){
@@ -21,16 +21,22 @@ window.updateCardsBadge=()=>{
 };
 
 function start(){
- queue=dueList().slice(0,SESSION); done=okN=noN=0; retried=new Set(); next();
+ begin(dueList());
 }
+function begin(list){ queue=list; again=[]; pass=1; okN=noN=0; retried=new Set(); next(); }
+// cards you missed are not shown again right away: they come back in another round after all the other cards
 function next(){
+ if(!queue.length&&again.length&&pass<MAX_PASSES){
+  const last=cur; queue=shuffle(again); again=[]; pass++;
+  if(queue.length>1&&queue[0]===last) queue.push(queue.shift());
+ }
  cur=queue.shift(); shown=false;
  cur?card():summary();
 }
 function front(w){ return dir==="en"?`<div class="word" dir="ltr">${w.w}</div>`:`<div class="word he">${w.he}</div>`; }
 function card(){
  const w=cur;
- $("cdBody").innerHTML=`<div class="cdleft">נשארו ${queue.length+1} כרטיסים</div>
+ $("cdBody").innerHTML=`<div class="cdleft">${pass>1?"סבב חוזר — מילים שלא ידעת · ":""}נשארו ${queue.length+1} כרטיסים</div>
  <div class="cdcard" id="cdTap">${front(w)}
   ${dir==="en"?`<button class="sound" data-say="${w.w}" aria-label="השמעת מילה">🔊</button>`:""}
   <div class="cdback" id="cdBack" hidden></div></div>
@@ -55,10 +61,10 @@ function grade(ok){
  if(ok){
   // a card that was missed earlier in this session does not climb
   if(!retried.has(w.w)) c.b=Math.min(c.b+1,GAPS.length-1);
-  c.d=dn+GAPS[c.b]; okN++;
+  c.d=dn+(retried.has(w.w)?Math.max(1,GAPS[c.b]):GAPS[c.b]); okN++;
  } else {
   c.b=Math.max(0,c.b-2); c.d=dn; noN++;
-  if(!retried.has(w.w)){ retried.add(w.w); queue.push(w); }
+  retried.add(w.w); again.push(w);
  }
  c.l=dn; S.cards[w.w]=c; save(); updateCardsBadge();
  next();
@@ -74,11 +80,11 @@ function summary(){
 }
 function intro(){
  const n=dueCount(), total=allWords.length, gone=allWords.filter(w=>hidden.has(w.w)).length;
- $("cdBody").innerHTML=n?`<p class="sub">${n} כרטיסים מחכים לך היום (מתוך ${total} מילים${gone?`, כולל ${gone} שהסרת כי למדת`:""}). סבב לוקח כמה דקות.</p>
+ $("cdBody").innerHTML=n?`<p class="sub">${n} כרטיסים מחכים לך היום (מתוך ${total} מילים${gone?`, כולל ${gone} שהסרת כי למדת`:""}). כל המילים נכללות בסבב.</p>
   <button class="next top" id="cdStart">▶ התחלת סבב</button>`
   :`<div class="win">✓ סיימת הכל להיום!</div><p class="sub">הכרטיסים הבאים יחכו לך בהמשך. אפשר לתרגל שוב כבר עכשיו:</p><button class="next top" id="cdAll">▶ סבב נוסף על כל המילים</button>`;
  if($("cdStart")) $("cdStart").onclick=start;
- if($("cdAll")) $("cdAll").onclick=()=>{ queue=shuffle(allWords).slice(0,SESSION); done=okN=noN=0; retried=new Set(); next(); };
+ if($("cdAll")) $("cdAll").onclick=()=>{ begin(shuffle(allWords)); };
 }
 
 games.cards={render(c){
