@@ -50,6 +50,7 @@ function drawRows(){
  $("awSave").style.display=rows.length?"block":"none";
 }
 let editing=null;
+const openEx=new Set();
 let sortBy=store.get("wqSort","weak");
 function statLine(w){
  const t=wstat(w);
@@ -74,7 +75,11 @@ function drawCustom(){
  const avg=withPct.length?Math.round(withPct.reduce((x,t)=>x+t.pct,0)/withPct.length):null;
  const row=(w,btns,extra)=>`<li><span><b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span>${btns}${extra||""}</li>`;
  const copyIcon=`<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>`;
- const exLine=w=>w.exs.length?w.exs.map(x=>`<div class="st2 ex-line"><span class="sent">${esc(x)}</span><button data-copy="${esc(x)}" aria-label="העתקת משפט">${copyIcon}</button></div>`).join(""):(w.custom?`<div class="st2 ex-line"><span class="sent">אין עדיין משפט</span></div>`:"");
+ const exLine=w=>{
+  if(!w.exs.length) return w.custom?`<div class="st2 ex-line"><span class="sent">אין עדיין משפט</span></div>`:"";
+  const o=openEx.has(w.w);
+  return `<button class="extoggle" data-extoggle="${esc(w.w)}" aria-expanded="${o}">📝 משפטים (${w.exs.length}) ${o?"▴":"▾"}</button>`+(o?w.exs.map(x=>`<div class="st2 ex-line"><span class="sent">${esc(x)}</span><button data-copy="${esc(x)}" aria-label="העתקת משפט">${copyIcon}</button></div>`).join(""):"");
+ };
  const editBox=w=>`<div class="editbox"><label>משמעות (מה שמוצג במשחקים)</label><input id="edHe" value="${esc(w.he)}"><label>הסבר מורחב (לא חובה)</label><input id="edM" value="${esc(w.m||"")}"><label>משפטים באנגלית — כל משפט בשורה נפרדת. במשחקים נבחר משפט אקראי, בלי לחזור על אותו משפט פעמיים ברציפות.</label><textarea id="edEx" dir="ltr" rows="4" autocapitalize="none">${esc(w.exs.join("\n"))}</textarea><div class="tools"><button class="wide" data-edsave="${esc(w.w)}">💾 שמירה</button><button class="wide" data-edfind="${esc(w.w)}">🔍 הוספת משפט</button><button class="wide" data-edcancel>ביטול</button></div></div>`;
  const rec=words.filter(w=>wstat(w).mastered);
  const missing=customWords().filter(w=>!w.ex&&!hidden.has(w.w)).length;
@@ -175,6 +180,8 @@ games.addwords={render(c){
  $("awRows").addEventListener("input",e=>{const i=e.target.dataset.i; if(i!=null) rows[+i][e.target.dataset.f]=e.target.value});
  $("awRows").addEventListener("click",e=>{const d=e.target.closest("[data-del]"); if(d){rows.splice(+d.dataset.del,1); drawRows()}});
  $("awList").addEventListener("click",e=>{
+  const xt=e.target.closest("[data-extoggle]");
+  if(xt){ const k=xt.dataset.extoggle; openEx.has(k)?openEx.delete(k):openEx.add(k); drawCustom(); return; }
   const ed=e.target.closest("[data-edit]");
   if(ed){ editing=editing===ed.dataset.edit?null:ed.dataset.edit; drawCustom(); return; }
   if(e.target.closest("[data-edcancel]")){ editing=null; drawCustom(); return; }
