@@ -79,3 +79,4 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 .cl .extoggle{width:auto;height:auto;flex-basis:auto;padding:5px 10px;font:inherit;font-size:13px;color:var(--dark);background:#ececf3}
 .cl .togs{flex-basis:100%;display:flex;gap:6px;flex-wrap:wrap}.cl .mtxt{color:var(--dark)}
 .recl{font-size:13px;background:#e9f8f0;border-radius:12px;padding:8px 10px;margin:8px 0;line-height:1.9}
+.cl .num{display:inline;flex:none;color:var(--muted);font-size:13px;font-weight:700;margin-inline-end:2px}
