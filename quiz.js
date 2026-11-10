@@ -7,7 +7,8 @@ function options(prop){
  return shuffle([current,...shuffle(words.filter(x=>x!==current)).slice(0,3)]).map(x=>x[prop]);
 }
 function newRound(){
- current=pickWeighted(1,mode==="context"?(w=>w.ex&&blankRe(w).test(w.ex)):null)[0];
+ current=pickWeighted(1,mode==="context"?(w=>w.exs.some(x=>blankRe(w).test(x))):null)[0];
+ rotateSentence(current,mode==="context"?(x=>blankRe(current).test(x)):null);
  let prompt,answers,correct,showWord=true,audioFirst=false;
  if(mode==="meaning"){
   prompt=`מה המשמעות המדויקת ביותר של <b dir="ltr">${current.w}</b>?`;
@@ -52,7 +53,7 @@ function answer(button,correct){
   bad(current);
   fb.innerHTML=`<b>לא נורא — זו בדיוק הסיבה שאנחנו מתרגלים.</b><br><br><b dir="ltr">${current.w}</b> = ${current.he}${current.m?`<br>${current.m}`:""}${current.ex?`<br><br><span class="example">${current.ex}</span>`:""}`;
  }
- speakWithSentence(current);
+ say([current.w,current.ex]);
  $("next").disabled=false;
 }
 

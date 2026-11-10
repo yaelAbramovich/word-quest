@@ -6,18 +6,26 @@ const store={
 };
 function parse(k,d){try{return JSON.parse(store.get(k,d))}catch(e){return JSON.parse(d)}}
 
-// shared progress: score, streak, learned words, mistakes (mistakes make a word come back more often)
+// shared progress: learned words, mistakes (mistakes make a word come back more often)
 const S={
- score:+store.get("wqScore",0)||0,
- streak:+store.get("wqStreak",0)||0,
  learned:new Set(parse("wqLearned","[]")),
  mistakes:parse("wqMistakes","{}"),
  totals:parse("wqTotals","{}"), // per word, all time: s = successes, m = mistakes, h = needed help (hint / reveal)
  stats:parse("wqStats","{}"),   // per word: last 10 results (1 = knew it, 0 = didn't), only from crossword + quiz
+ cards:parse("wqCards","{}"),   // flashcards (spaced repetition): per word {b: box, d: next due day, l: last seen day}
  keyHandler:null
 };
 // words the user added (from an image or by hand) are stored on the device and merged into the word list
 parse("wqCustom","[]").forEach(c=>{ if(!words.some(x=>x.w===c.w)) words.push(c); });
+// every word has a list of example sentences (`exs`); `ex` is the one currently in use.
+// meanings and sentences of the built-in words that you edited are kept in wqEdits
+const edits=parse("wqEdits","{}");
+words.forEach(w=>{
+ const o=edits[w.w];
+ if(o){ if(o.he) w.he=o.he; if(o.m!==undefined) w.m=o.m; if(o.exs) w.exs=o.exs; }
+ if(!w.exs) w.exs=w.ex?[w.ex]:[];
+ w.ex=w.exs[0]||"";
+});
 // words you know well can be hidden: they are removed from `words`, which every game uses
 const allWords=[...words];
 const hidden=new Set(parse("wqHidden","[]"));
@@ -74,12 +82,11 @@ function pickWeighted(n,filter){
 function renderStats(){
 }
 function save(){
- store.set("wqScore",S.score); store.set("wqStreak",S.streak);
- store.set("wqStats",JSON.stringify(S.stats)); store.set("wqTotals",JSON.stringify(S.totals)); store.set("wqLearned",JSON.stringify([...S.learned])); store.set("wqMistakes",JSON.stringify(S.mistakes));
+ store.set("wqStats",JSON.stringify(S.stats)); store.set("wqTotals",JSON.stringify(S.totals)); store.set("wqCards",JSON.stringify(S.cards)); store.set("wqLearned",JSON.stringify([...S.learned])); store.set("wqMistakes",JSON.stringify(S.mistakes));
  renderStats();
 }
-function good(w,pts=10){S.score+=pts;S.streak++;S.learned.add(w.w);S.mistakes[w.w]=Math.max(0,(S.mistakes[w.w]||0)-1);save()}
-function bad(w){S.streak=0;S.mistakes[w.w]=(S.mistakes[w.w]||0)+1;save()}
+function good(w){S.learned.add(w.w);S.mistakes[w.w]=Math.max(0,(S.mistakes[w.w]||0)-1);save()}
+function bad(w){S.mistakes[w.w]=(S.mistakes[w.w]||0)+1;save()}
 
 try{ speechSynthesis.getVoices(); }catch(e){}
 let muted=store.get("wqMuted","0")==="1";
@@ -125,7 +132,17 @@ function say(texts,notify){
 }
 function speak(text,notify){ say([text],notify); }
 // the word, then its full example sentence (if it has one)
-function speakWithSentence(w,notify){ say([w.w,w.ex],notify); }
+// smart random: all sentences are used before any repeats, and never the same one twice in a row
+const bags=new Map();
+function rotateSentence(w,ok){
+ const all=ok?w.exs.filter(ok):w.exs;
+ if(!all.length) return w.ex;
+ if(all.length===1) return w.ex=all[0];
+ let bag=(bags.get(w.w)||[]).filter(x=>all.includes(x)&&x!==w.ex);
+ if(!bag.length) bag=shuffle(all.filter(x=>x!==w.ex));
+ w.ex=bag.shift(); bags.set(w.w,bag); return w.ex;
+}
+function speakWithSentence(w,notify){ rotateSentence(w); say([w.w,w.ex],notify); }
 document.addEventListener("click",e=>{
  const m=e.target.closest("#mute");
  if(m){ muted=!muted; store.set("wqMuted",muted?"1":"0"); if(muted){try{speechSynthesis.cancel()}catch(x){}} renderMute(); return; }
@@ -134,16 +151,16 @@ document.addEventListener("click",e=>{
   const w=allWords.find(x=>x.w===an.dataset.another); if(!w) return;
   an.disabled=true; an.textContent="מחפשת…";
   anotherSentence(w).then(x=>{
-   an.disabled=false; an.textContent="🔄 משפט אחר";
+   an.disabled=false; an.textContent="➕ עוד משפט";
    const ex=an.closest(".wcard")?.querySelector(".example");
-   if(x&&ex){ ex.textContent=x; ex.style.display=""; speakWithSentence(w); }
+   if(x&&ex){ ex.textContent=x; ex.style.display=""; say([w.w,w.ex]); }
   });
   return;
  }
  const k=e.target.closest("[data-known]");
  if(k){ const w=allWords.find(x=>x.w===k.dataset.known); if(w&&hideWord(w)){ k.textContent="✓ הוסרה. אפשר להחזיר בלשונית מילים"; k.disabled=true; } return; }
  const f=e.target.closest("[data-sw]");
- if(f){ const w=words.find(x=>x.w===f.dataset.sw); if(w) speakWithSentence(w,true); return; }
+ if(f){ const w=allWords.find(x=>x.w===f.dataset.sw); if(w) say([w.w,w.ex],true); return; }
  const b=e.target.closest("[data-say]"); if(b) speak(b.dataset.say,true);
 });
 
@@ -155,7 +172,7 @@ function wordCard(w,title,noKnown){
    <b class="en" dir="ltr">${w.w}</b> — ${w.he}
    ${noKnown?"":`<button class="known" data-known="${w.w}">✓ מכירה טוב — להסיר מהמשחקים</button>`}
    ${w.m?`<div class="mean">${w.m}</div>`:""}${w.ex||w.custom?`<div class="example"${w.ex?"":' style="display:none"'}>${w.ex}</div>`:""}
-   ${w.custom?`<button class="known" data-another="${w.w}">🔄 משפט אחר</button>`:""}</div></div>`;
+   ${w.custom?`<button class="known" data-another="${w.w}">➕ עוד משפט</button>`:""}</div></div>`;
 }
 
 function celebrate(msg){
@@ -177,6 +194,15 @@ async function copyText(t){
 
 // ---- example sentences for words you add (Wiktionary: works from a web page, but does not know every word) ----
 const saveCustom=()=>store.set("wqCustom",JSON.stringify(allWords.filter(w=>w.custom)));
+function persistWord(w){
+ if(w.custom) return saveCustom();
+ edits[w.w]={he:w.he,m:w.m||"",exs:w.exs}; store.set("wqEdits",JSON.stringify(edits));
+}
+function setSentences(w,list){
+ w.exs=[...new Set(list.map(x=>x.trim()).filter(Boolean))];
+ if(!w.exs.includes(w.ex)) w.ex=w.exs[0]||"";
+ persistWord(w);
+}
 const exCache={};
 function cleanEx(t){
  const d=document.createElement("textarea"); d.innerHTML=t.replace(/<[^>]+>/g,"");
@@ -201,12 +227,12 @@ async function sentenceCandidates(word){
  return exCache[word]=good;
 }
 async function findSentence(word){ return (await sentenceCandidates(word))[0]||null; }
-// replace the sentence with the next candidate; returns it (or null when there is no other one)
+// add one more sentence from Wiktionary (one the word does not have yet) and use it; returns it, or null when there is none
 async function anotherSentence(w){
  const c=await sentenceCandidates(w.w);
- const i=c.indexOf(w.ex), next=c.length?c[(i+1)%c.length]:null;
- if(!next||next===w.ex){ toast(c.length?"זה המשפט היחיד שמצאתי למילה הזו. אפשר לכתוב משפט ב-✏️ בלשונית מילים":"לא מצאתי משפטים למילה הזו. אפשר לכתוב משפט ב-✏️ בלשונית מילים"); return null; }
- w.ex=next; saveCustom(); document.dispatchEvent(new Event("sentencechanged"));
+ const next=c.find(x=>!w.exs.includes(x));
+ if(!next){ toast(c.length?"אין עוד משפטים שמצאתי למילה הזו. אפשר לכתוב משפטים ב-✏️ בלשונית מילים":"לא מצאתי משפטים למילה הזו. אפשר לכתוב משפטים ב-✏️ בלשונית מילים"); return null; }
+ setSentences(w,[...w.exs,next]); w.ex=next; document.dispatchEvent(new Event("sentencechanged"));
  return next;
 }
 
@@ -232,8 +258,8 @@ function showTab(name){
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 $("reset").onclick=()=>{
- if(confirm("לאפס את כל הנקודות וההתקדמות?")){
-  S.score=0;S.streak=0;S.learned=new Set();S.mistakes={};S.stats={};S.totals={};save();showTab(currentTab);
+ if(confirm("לאפס את כל ההתקדמות (אחוזי ידיעה, ספירות וכרטיסיות)?")){
+  S.learned=new Set();S.mistakes={};S.stats={};S.totals={};S.cards={};save();showTab(currentTab);
  }
 };
 window.addEventListener("load",()=>{

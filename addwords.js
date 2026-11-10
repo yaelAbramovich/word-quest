@@ -49,6 +49,7 @@ function drawRows(){
  $("awRows").innerHTML=rows.map((r,i)=>`<div class="wr"><input class="en" dir="ltr" data-i="${i}" data-f="en" placeholder="English" value="${esc(r.en)}" autocapitalize="none" autocorrect="off"><input data-i="${i}" data-f="he" placeholder="תרגום" value="${esc(r.he)}"><button data-del="${i}" aria-label="מחיקה">✕</button><input class="ex" dir="ltr" data-i="${i}" data-f="ex" placeholder="משפט באנגלית (לא חובה — אם ריק אחפש לבד)" value="${esc(r.ex||"")}" autocapitalize="none"></div>`).join("");
  $("awSave").style.display=rows.length?"block":"none";
 }
+let editing=null;
 let sortBy=store.get("wqSort","weak");
 function statLine(w){
  const t=wstat(w);
@@ -72,17 +73,19 @@ function drawCustom(){
  const learning=st.filter(t=>t.n&&t.pct===null).length, fresh=st.filter(t=>!t.n).length;
  const avg=withPct.length?Math.round(withPct.reduce((x,t)=>x+t.pct,0)/withPct.length):null;
  const row=(w,btns,extra)=>`<li><span><b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span>${btns}${extra||""}</li>`;
- const exLine=w=>(w.ex||w.custom)?`<div class="st2 ex-line"><span class="sent">${w.ex?esc(w.ex):"אין עדיין משפט"}</span>${w.ex?`<button data-copy="${esc(w.ex)}" aria-label="העתקת משפט"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button>`:""}${w.custom?`<button data-edit="${esc(w.w)}">✏️ ${w.ex?"עריכה":"הוספת משפט"}</button><button data-another="${esc(w.w)}">🔄 ${w.ex?"משפט אחר":"חיפוש משפט"}</button>`:""}</div>`:"";
+ const copyIcon=`<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>`;
+ const exLine=w=>w.exs.length?w.exs.map(x=>`<div class="st2 ex-line"><span class="sent">${esc(x)}</span><button data-copy="${esc(x)}" aria-label="העתקת משפט">${copyIcon}</button></div>`).join(""):(w.custom?`<div class="st2 ex-line"><span class="sent">אין עדיין משפט</span></div>`:"");
+ const editBox=w=>`<div class="editbox"><label>משמעות (מה שמוצג במשחקים)</label><input id="edHe" value="${esc(w.he)}"><label>הסבר מורחב (לא חובה)</label><input id="edM" value="${esc(w.m||"")}"><label>משפטים באנגלית — כל משפט בשורה נפרדת. במשחקים נבחר משפט אקראי, בלי לחזור על אותו משפט פעמיים ברציפות.</label><textarea id="edEx" dir="ltr" rows="4" autocapitalize="none">${esc(w.exs.join("\n"))}</textarea><div class="tools"><button class="wide" data-edsave="${esc(w.w)}">💾 שמירה</button><button class="wide" data-edfind="${esc(w.w)}">🔍 הוספת משפט</button><button class="wide" data-edcancel>ביטול</button></div></div>`;
  const rec=words.filter(w=>wstat(w).mastered);
  const missing=customWords().filter(w=>!w.ex&&!hidden.has(w.w)).length;
  const sb=(k,t)=>`<button data-sort="${k}" class="${sortBy===k?"on":""}">${t}</button>`;
  $("awList").innerHTML=`<h4>המילים במשחקים (${words.length})</h4>
- <p class="sub">האחוז נמדד רק בתשבץ ובחידון, ומופיע אחרי ${WINDOW} ניסיונות (הנקודות מראות את התוצאות: ירוק = ידעת). הוא מבוסס על ${WINDOW} הניסיונות האחרונים. 100% = כל הניסיונות נכונים, עם הצלחות ב-${DAYS_FOR_100} ימים שונים. בפחות ימים — המקסימום 90%. רמז או "גלי מילה" נחשבים כאילו לא ידעת. מילים חדשות וחלשות יופיעו יותר. בנוסף, מתחת לכל מילה מוצגת הספירה הכוללת מאז ומעולם: הצלחות, טעויות וכמה פעמים נעזרת ברמז.</p>
+ <p class="sub">האחוז נמדד רק בתשבץ ובחידון, ומופיע אחרי ${WINDOW} ניסיונות. הוא מבוסס על ${WINDOW} הניסיונות האחרונים. 100% = כל הניסיונות נכונים, עם הצלחות ב-${DAYS_FOR_100} ימים שונים. בפחות ימים — המקסימום 90%. רמז או "גלי מילה" נחשבים כאילו לא ידעת. מילים חדשות וחלשות יופיעו יותר. בנוסף, מתחת לכל מילה מוצגת הספירה הכוללת מאז ומעולם: הצלחות, טעויות וכמה פעמים נעזרת ברמז.</p>
  ${missing?`<button class="next" style="display:block;margin:8px 0" data-fillall>🔍 חיפוש משפטים ל-${missing} מילים שחסר להן</button>`:""}
  <div class="sum">${withPct.length} מילים עם אחוז${avg===null?"":` (ממוצע ${avg}%)`} · ${learning} בלמידה · ${fresh} חדשות${rec.length?` · 💡 ${rec.length} מומלצות להסרה`:""}</div>
  ${rec.length?`<button class="next" style="display:block;margin:8px 0;background:var(--green)" data-removerec>💡 הסרת ${rec.length} המילים המומלצות להסרה</button>`:""}
  <div class="tools sorts">${sb("weak","הכי חלשות")}${sb("strong","הכי חזקות")}${sb("alpha","א-ב")}</div>
- <ul class="cl">${act.map(w=>row(w,`<button data-copy="${esc(w.w)}" aria-label="העתקת מילה"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button><button data-say="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-hide="${esc(w.w)}" aria-label="מכירה טוב" title="מכירה טוב">✓</button>${w.custom?`<button data-rm="${esc(w.w)}" aria-label="מחיקה">✕</button>`:""}`,statLine(w)+exLine(w))).join("")}</ul>`+
+ <ul class="cl">${act.map(w=>row(w,`<button data-copy="${esc(w.w)}" aria-label="העתקת מילה"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button><button data-say="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-edit="${esc(w.w)}" aria-label="עריכת משמעות ומשפטים">✏️</button><button data-hide="${esc(w.w)}" aria-label="מכירה טוב" title="מכירה טוב">✓</button>${w.custom?`<button data-rm="${esc(w.w)}" aria-label="מחיקה">✕</button>`:""}`,editing===w.w?editBox(w):statLine(w)+exLine(w))).join("")}</ul>`+
  (gone.length?`<h4>מילים שהוסרו (${gone.length})</h4><ul class="cl">${gone.map(w=>row(w,`<button data-restore="${esc(w.w)}" class="wide" aria-label="החזרה">↩ החזרה</button>`)).join("")}</ul>`:"");
 }
 
@@ -112,7 +115,7 @@ async function add(){
  for(const r of rows){
   const en=r.en.trim().toLowerCase(), he=r.he.trim();
   if(!en||!he||!/[a-z]/.test(en)||allWords.some(w=>w.w===en)){ skipped++; keep.push(r); continue; }
-  const w={w:en,he,m:"",ex:(r.ex||"").trim(),custom:1}; allWords.push(w); fresh.push(w); added++;
+  const ex=(r.ex||"").trim(), w={w:en,he,m:"",ex,exs:ex?[ex]:[],custom:1}; allWords.push(w); fresh.push(w); added++;
  }
  rows=keep; saveCustom(); applyHidden(); renderStats();
  drawRows(); drawCustom();
@@ -126,7 +129,7 @@ async function fillSentences(list){
  for(let i=0;i<list.length;i++){
   $("awSt").textContent=`מחפשת משפטים… ${i+1}/${list.length}`;
   const x=await findSentence(list[i].w);
-  if(x){ list[i].ex=x; got++; saveCustom(); }
+  if(x){ setSentences(list[i],[x]); got++; }
  }
  drawCustom();
  $("awSt").textContent=`נמצאו משפטים ל-${got} מתוך ${list.length} מילים.${got<list.length?" לשאר אפשר לכתוב משפט ידנית עם ✏️ ברשימה למטה.":""}`;
@@ -173,9 +176,26 @@ games.addwords={render(c){
  $("awRows").addEventListener("click",e=>{const d=e.target.closest("[data-del]"); if(d){rows.splice(+d.dataset.del,1); drawRows()}});
  $("awList").addEventListener("click",e=>{
   const ed=e.target.closest("[data-edit]");
-  if(ed){ const w=allWords.find(x=>x.custom&&x.w===ed.dataset.edit); if(!w) return;
-   const v=prompt(`משפט באנגלית עם המילה "${w.w}":`,w.ex||""); if(v===null) return;
-   w.ex=v.trim(); saveCustom(); drawCustom(); return; }
+  if(ed){ editing=editing===ed.dataset.edit?null:ed.dataset.edit; drawCustom(); return; }
+  if(e.target.closest("[data-edcancel]")){ editing=null; drawCustom(); return; }
+  const sv=e.target.closest("[data-edsave]");
+  if(sv){
+   const w=allWords.find(x=>x.w===sv.dataset.edsave); if(!w) return;
+   const he=$("edHe").value.trim(); if(!he){ toast("צריך לכתוב משמעות"); return; }
+   w.he=he; w.m=$("edM").value.trim(); setSentences(w,$("edEx").value.split("\n"));
+   editing=null; drawCustom(); toast("נשמר ✓"); return; }
+  const fd=e.target.closest("[data-edfind]");
+  if(fd){
+   const w=allWords.find(x=>x.w===fd.dataset.edfind); if(!w) return;
+   fd.disabled=true; fd.textContent="מחפשת…";
+   const have=$("edEx").value.split("\n").map(x=>x.trim());
+   sentenceCandidates(w.w).then(c=>{
+    fd.disabled=false; fd.textContent="🔍 הוספת משפט";
+    const n=c.find(x=>!have.includes(x));
+    if(!n){ toast("לא מצאתי עוד משפטים. אפשר לכתוב ידנית"); return; }
+    $("edEx").value=($("edEx").value.trim()?$("edEx").value.trim()+"\n":"")+n;
+   });
+   return; }
   const cp=e.target.closest("[data-copy]"); if(cp){ copyText(cp.dataset.copy); return; }
   if(e.target.closest("[data-removerec]")){
    const rec=words.filter(w=>wstat(w).mastered);

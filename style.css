@@ -65,3 +65,14 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 .example{display:block;overflow-wrap:anywhere}.tools.top{margin:10px 0 12px}.next.top{display:block;margin:0 0 12px}.next:disabled{opacity:.35}.next.top+.tag{margin-top:2px}
 .cl button[data-copy]{width:36px}
 .cl button[data-copy]{display:grid;place-items:center;color:var(--dark)}
+
+/* flashcards, edit box, tab badge */
+.tabs{grid-template-columns:repeat(6,1fr);gap:4px}.tabs button{position:relative;padding:8px 0}.tabs button span{font-size:10px}
+.bdg{position:absolute;top:-4px;inset-inline-start:-3px;min-width:18px;height:18px;border-radius:9px;background:#e8505b;color:#fff;font:700 11px/18px system-ui;font-style:normal;text-align:center;padding:0 4px}
+.cdleft{text-align:center;color:var(--muted);font-size:13px;margin-bottom:8px}
+.cdcard{background:#f7f7fb;border-radius:20px;padding:22px 16px;text-align:center;margin-bottom:12px;min-height:150px}
+.cdcard .word{margin:6px 0 4px;overflow-wrap:anywhere}.cdcard .word.he{direction:rtl;font-size:28px}
+.cdback{margin-top:14px;border-top:1px dashed #d8d8e6;padding-top:12px}.cdback .ans{font-size:24px;font-weight:800;overflow-wrap:anywhere}.cdback .mean{margin:8px 0;font-size:14px;color:var(--muted)}.cdback .example{text-align:left;margin-top:8px;overflow-wrap:anywhere}
+.cdans{display:grid;grid-template-columns:1fr 1fr;gap:10px}.cdans button{border:0;border-radius:16px;padding:16px;font:inherit;font-size:18px;font-weight:800}.cdok{background:#d9f5e6;color:#1f7a4d}.cdno{background:#ffe0e3;color:#b3303b}
+.editbox{flex-basis:100%;display:flex;flex-direction:column;gap:6px;background:#f7f7fb;border-radius:14px;padding:10px}.editbox label{font-size:12px;color:var(--muted)}.editbox input,.editbox textarea{font:inherit;font-size:15px;border:1px solid #dcdcea;border-radius:10px;padding:8px;width:100%;box-sizing:border-box}.editbox .tools{display:flex;gap:6px;flex-wrap:wrap}
+[hidden]{display:none!important}

@@ -88,9 +88,9 @@ function finish(){
   good(p.w); speakWithSentence(p.w);
   $("wsInfo").innerHTML=wordCard(p.w,"✓ מצאת!",true);
   if(G.placed.every(x=>x.found)){
-   S.score+=30; save(); G.won=true;
-   celebrate("מצאת את כל המילים! +30 ⭐");
-   $("wsInfo").insertAdjacentHTML("afterbegin",`<div class="win">🎉 כל המילים נמצאו! +30 נקודות בונוס</div>`);
+   save(); G.won=true;
+   celebrate("מצאת את כל המילים!");
+   $("wsInfo").insertAdjacentHTML("afterbegin",`<div class="win">🎉 כל המילים נמצאו!</div>`);
   }
   sel=[]; drawList(); paint();
  } else {

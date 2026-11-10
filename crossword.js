@@ -138,9 +138,9 @@ function solve(e,earned){
  speakWithSentence(e.w);
  $("cwInfo").innerHTML=wordCard(e.w,earned?"✓ מצוין!":"");
  if(P.entries.every(x=>x.solved)){
-  P.won=true; S.score+=30; save();
-  celebrate("פתרת את כל התשבץ! +30 ⭐");
-  $("cwInfo").insertAdjacentHTML("afterbegin",`<div class="win">🎉 התשבץ הושלם! +30 נקודות בונוס</div>`);
+  P.won=true; save();
+  celebrate("פתרת את כל התשבץ!");
+  $("cwInfo").insertAdjacentHTML("afterbegin",`<div class="win">🎉 התשבץ הושלם!</div>`);
   draw(); return;
  }
  const nxt=P.entries.findIndex((x,i)=>i!==P.ei&&!x.solved&&x.d===e.d&&i>P.ei);
