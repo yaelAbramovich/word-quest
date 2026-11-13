@@ -80,3 +80,13 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 .cl .togs{flex-basis:100%;display:flex;gap:6px;flex-wrap:wrap}.cl .mtxt{color:var(--dark)}
 .recl{font-size:13px;background:#e9f8f0;border-radius:12px;padding:8px 10px;margin:8px 0;line-height:1.9}
 .cl .num{display:inline;flex:none;color:var(--muted);font-size:13px;font-weight:700;margin-inline-end:2px}
+
+/* game bar: scope switch + help button */
+.gbar{display:flex;gap:8px;align-items:center;margin:0 0 10px}.seg{flex:1;display:flex;background:#ececf3;border-radius:13px;padding:3px;gap:3px}.seg button{flex:1;border:0;border-radius:10px;background:transparent;color:var(--dark);font:inherit;font-size:13.5px;padding:8px 4px;white-space:nowrap}.seg button.on{background:var(--dark);color:#fff}
+.helpbtn{flex:none;width:36px;height:36px;border:0;border-radius:50%;background:#eeebff;color:#5644c5;font:inherit;font-size:18px;font-weight:800;padding:0}
+.helpov{position:fixed;inset:0;z-index:50;background:#20203b66;display:flex;align-items:flex-end;justify-content:center}.helpsheet{background:#fff;width:100%;max-width:520px;border-radius:22px 22px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));line-height:1.6;font-size:15px;max-height:80vh;overflow:auto}.helpsheet h3{margin:0 0 8px}.helpsheet p{margin:8px 0}.helpsheet .helpclose{margin:14px 0 0}
+/* crossword: compact clue + result line */
+.clue{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.clue.open{display:block}#cwClue{cursor:pointer}
+.cwres{display:flex;gap:8px;align-items:center;background:#eaf8f0;border-radius:13px;padding:6px 8px;margin:0 0 10px}.cwres:empty{display:none}.cwres .sound.sm{margin:0;flex:none;width:34px;height:34px;font-size:16px;background:#fff}.cwtxt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14.5px}.cwmore{flex:none;border:0;background:transparent;color:var(--green);font:inherit;font-size:13px;font-weight:700;padding:6px 4px}
+.cwdet{background:#eaf8f0;border-radius:13px;padding:10px 12px;margin:-4px 0 10px;line-height:1.5;font-size:14.5px}.cwdet[hidden]{display:none}.cwdet .example{background:#fff;margin-top:6px;font-size:14px;padding:9px 11px}
+.win.cwwin{margin:0 0 8px;padding:8px 12px;font-size:14.5px}

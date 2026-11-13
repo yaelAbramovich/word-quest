@@ -87,13 +87,14 @@ function drawCustom(){
  const editBox=w=>`<div class="editbox"><label>משמעות (מה שמוצג במשחקים)</label><input id="edHe" value="${esc(w.he)}"><label>הסבר מורחב (לא חובה)</label><input id="edM" value="${esc(w.m||"")}"><label>משפטים באנגלית — כל משפט בשורה נפרדת. במשחקים נבחר משפט אקראי, בלי לחזור על אותו משפט פעמיים ברציפות.</label><textarea id="edEx" dir="ltr" rows="4" autocapitalize="none">${esc(w.exs.join("\n"))}</textarea><div class="tools"><button class="wide" data-edsave="${esc(w.w)}">💾 שמירה</button><button class="wide" data-edfind="${esc(w.w)}">🔍 הוספת משפט</button><button class="wide" data-edcancel>ביטול</button></div></div>`;
  const rec=words.filter(w=>wstat(w).mastered);
  const missing=customWords().filter(w=>!w.ex&&!hidden.has(w.w)).length;
- const sb=(k,t)=>`<button data-sort="${k}" class="${sortBy===k?"on":""}">${t}</button>`;
+ const nWeak=words.filter(isWeak).length;
+ const sb=(k,t,n)=>`<button data-sort="${k}" class="${sortBy===k?"on":""}">${t} (${n})</button>`;
  $("awList").innerHTML=`<h4>המילים במשחקים (${words.length})</h4>
  <p class="sub">האחוז נמדד רק בתשבץ ובחידון, ומופיע אחרי ${WINDOW} ניסיונות. הוא מבוסס על ${WINDOW} הניסיונות האחרונים. 100% = כל הניסיונות נכונים, עם הצלחות ב-${DAYS_FOR_100} ימים שונים. בפחות ימים — המקסימום 90%. רמז או "גלי מילה" נחשבים כאילו לא ידעת. מילים חדשות וחלשות יופיעו יותר. בנוסף, מתחת לכל מילה מוצגת הספירה הכוללת מאז ומעולם: הצלחות, טעויות וכמה פעמים נעזרת ברמז.</p>
  ${missing?`<button class="next" style="display:block;margin:8px 0" data-fillall>🔍 חיפוש משפטים ל-${missing} מילים שחסר להן</button>`:""}
  <div class="sum">${withPct.length} מילים עם אחוז${avg===null?"":` (ממוצע ${avg}%)`} · ${learning} בלמידה · ${fresh} חדשות${rec.length?` · 💡 ${rec.length} מומלצות להסרה`:""}</div>
  ${rec.length?`<div class="recl">המילים המומלצות להסרה: ${rec.map(w=>`<b dir="ltr">${esc(w.w)}</b>`).join(" · ")}</div><button class="next" style="display:block;margin:8px 0;background:var(--green)" data-removerec>💡 הסרת ${rec.length} המילים המומלצות להסרה</button>`:""}
- <div class="tools sorts">${sb("weak","הכי חלשות")}${sb("strong","הכי חזקות")}${sb("alpha","א-ב")}</div>
+ <div class="tools sorts">${sb("weak","הכי חלשות",nWeak)}${sb("strong","הכי חזקות",words.length-nWeak)}${sb("alpha","A-Z",words.length)}</div>
  <ul class="cl">${act.map((w,i)=>row(w,`<button data-copy="${esc(w.w)}" aria-label="העתקת מילה"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button><button data-say="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-edit="${esc(w.w)}" aria-label="עריכת משמעות ומשפטים">✏️</button><button data-hide="${esc(w.w)}" aria-label="מכירה טוב" title="מכירה טוב">✓</button>${w.custom?`<button data-rm="${esc(w.w)}" aria-label="מחיקה">✕</button>`:""}`,editing===w.w?editBox(w):statLine(w)+exLine(w),i+1)).join("")}</ul>`+
  (gone.length?`<h4>מילים שהוסרו (${gone.length})</h4><ul class="cl">${gone.map(w=>row(w,`<button data-restore="${esc(w.w)}" class="wide" aria-label="החזרה">↩ החזרה</button>`)).join("")}</ul>`:"");
 }

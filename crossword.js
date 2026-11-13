@@ -131,16 +131,24 @@ function check(ei){
  }
 }
 let P0;
+// one compact line under the clue, so the grid and the keyboard stay in view; the meaning and the sentence open on demand
+function resultHTML(w,mark){
+ return `<div class="cwres"><button class="sound sm" data-sw="${w.w}" aria-label="השמעה">🔊</button>
+  <span class="cwtxt">${mark?mark+" ":""}<b class="en" dir="ltr">${w.w}</b> — ${w.he}</span>
+  <button class="cwmore" aria-expanded="false">פרטים ▾</button></div>
+  <div class="cwdet" hidden>${w.he}${w.m?`<div class="mean">${w.m}</div>`:""}${w.ex?`<div class="example">${w.ex}</div>`:""}
+  <button class="known" data-known="${w.w}">✓ מכירה טוב — להסיר מהמשחקים</button></div>`;
+}
 function solve(e,earned){
  e.solved=true;
  e.cells.forEach(([r,c])=>{const x=P.cells[r][c];x.locked=true;x.val=x.ch});
  if(earned){ good(e.w); record(e.w,e.hinted?"help":e.missed?"miss":"ok"); }
  speakWithSentence(e.w);
- $("cwInfo").innerHTML=wordCard(e.w,earned?"✓ מצוין!":"");
+ $("cwInfo").innerHTML=resultHTML(e.w,earned?"✓":"");
  if(P.entries.every(x=>x.solved)){
   P.won=true; save();
   celebrate("פתרת את כל התשבץ!");
-  $("cwInfo").insertAdjacentHTML("afterbegin",`<div class="win">🎉 התשבץ הושלם!</div>`);
+  $("cwInfo").insertAdjacentHTML("afterbegin",`<div class="win cwwin">🎉 התשבץ הושלם!</div>`);
   draw(); return;
  }
  const nxt=P.entries.findIndex((x,i)=>i!==P.ei&&!x.solved&&x.d===e.d&&i>P.ei);
@@ -195,8 +203,9 @@ function newPuzzle(){
  draw();
 }
 
+HELP.crossword=`<h3>🧩 תשבץ</h3><p>בוחרים משבצת ומקלידים באנגלית. לחיצה נוספת על אותה משבצת מחליפה בין אופקי לאנכי. כשמילה נכונה — שומעים אותה ורואים את התרגום (״פרטים״ מציג הסבר ומשפט).</p><p>💡 רמז חושף אות. 👁 גלי מילה חושף את כל המילה. רשימת ההגדרות נמצאת מתחת למקלדת.</p>`;
 games.crossword={render(c){
- c.innerHTML=`<p class="sub">בחרי משבצת, הקלידי באנגלית. כשמילה נכונה — תשמעי אותה ותראי את התרגום.</p>
+ c.innerHTML=gameBar("crossword")+`
  <div class="tools top"><button id="cwHint">💡 רמז</button><button id="cwReveal">👁 גלי מילה</button><button id="cwNew">🔄 תשבץ חדש</button></div>
  <div class="cwwrap"><div class="cw" id="cwGrid" dir="ltr"></div></div>
  <div class="clue" id="cwClue"></div>
@@ -207,6 +216,12 @@ games.crossword={render(c){
  $("cwGrid").addEventListener("click",ev=>{
   const x=ev.target.closest(".cx[data-r]"); if(x) onCell(+x.dataset.r,+x.dataset.c);
  });
+ $("cwInfo").addEventListener("click",ev=>{
+  const m=ev.target.closest(".cwmore"); if(!m) return;
+  const d=$("cwInfo").querySelector(".cwdet"), open=d.hidden;
+  d.hidden=!open; m.setAttribute("aria-expanded",open); m.textContent=open?"פרטים ▴":"פרטים ▾";
+ });
+ $("cwClue").onclick=()=>$("cwClue").classList.toggle("open");
  $("cwLists").addEventListener("click",ev=>{const li=ev.target.closest("li[data-e]"); if(li) select(+li.dataset.e)});
  $("cwHint").onclick=hint; $("cwReveal").onclick=reveal; $("cwNew").onclick=newPuzzle;
  newPuzzle();

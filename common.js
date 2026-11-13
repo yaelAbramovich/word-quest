@@ -73,10 +73,49 @@ function weightOf(w){
  const t=wstat(w), rate=t.pct!==null?t.pct/100:(t.n?t.c/t.n:0);
  return Math.max(t.pct===null?2:1,1+4*(1-rate))+(S.mistakes[w.w]||0);
 }
-function pickWeighted(n,filter){
- return words.filter(filter||(()=>true))
-  .map(w=>({w,k:Math.pow(Math.random(),1/weightOf(w))}))
+// ---- scope: every game can use all words, or only the weak ones (new, or under 80% correct) ----
+function isWeak(w){
+ const t=wstat(w);
+ if(!t.n) return true;
+ return (t.pct!==null?t.pct/100:t.c/t.n)<0.8;
+}
+const getScope=g=>store.get("wqScope_"+g,"all");
+function drawWeighted(list,n){
+ return list.map(w=>({w,k:Math.pow(Math.random(),1/weightOf(w))}))
   .sort((a,b)=>b.k-a.k).slice(0,n).map(x=>x.w);
+}
+// `avoid` = names of words shown very recently: they are skipped as long as enough other words remain
+function pickWeighted(n,filter,avoid){
+ let base=words.filter(filter||(()=>true));
+ if(avoid&&avoid.length){ const f=base.filter(w=>!avoid.includes(w.w)); if(f.length>=n) base=f; }
+ if(getScope(currentTab)==="weak"){
+  const got=drawWeighted(base.filter(isWeak),n);   // not enough weak words: complete from the others
+  if(got.length<n) got.push(...drawWeighted(base.filter(w=>!got.includes(w)),n-got.length));
+  return got;
+ }
+ return drawWeighted(base,n);
+}
+// remembers the last few words of a game so the same word does not come back right away
+function recentWords(size){
+ const a=[];
+ return {list:a,add(w){ a.push(w.w); while(a.length>size) a.shift(); }};
+}
+
+// ---- compact game bar: scope switch + a small "?" that opens the instructions (no space taken from the game) ----
+const HELP={};
+function gameBar(game,pool){
+ const sc=getScope(game), weak=(pool||words).filter(isWeak).length;
+ return `<div class="gbar"><div class="seg">
+  <button data-scope="all" class="${sc==="all"?"on":""}">כל המילים</button>
+  <button data-scope="weak" class="${sc==="weak"?"on":""}">רק חלשות (${weak})</button></div>
+  <button class="helpbtn" data-help="${game}" aria-label="הוראות" aria-haspopup="dialog">?</button></div>`;
+}
+function showHelp(html){
+ document.querySelectorAll(".helpov").forEach(x=>x.remove());
+ const d=document.createElement("div"); d.className="helpov";
+ d.innerHTML=`<div class="helpsheet" role="dialog" aria-modal="true">${html}<button class="next top helpclose">הבנתי</button></div>`;
+ d.onclick=e=>{ if(e.target===d||e.target.closest(".helpclose")) d.remove(); };
+ document.body.appendChild(d);
 }
 
 function renderStats(){
@@ -144,6 +183,10 @@ function rotateSentence(w,ok){
 }
 function speakWithSentence(w,notify){ rotateSentence(w); say([w.w,w.ex],notify); }
 document.addEventListener("click",e=>{
+ const sc=e.target.closest("[data-scope]");
+ if(sc){ store.set("wqScope_"+currentTab,sc.dataset.scope); showTab(currentTab); return; }
+ const hp=e.target.closest("[data-help]");
+ if(hp){ showHelp(HELP[hp.dataset.help]||""); return; }
  const m=e.target.closest("#mute");
  if(m){ muted=!muted; store.set("wqMuted",muted?"1":"0"); if(muted){try{speechSynthesis.cancel()}catch(x){}} renderMute(); return; }
  const an=e.target.closest("[data-another]");

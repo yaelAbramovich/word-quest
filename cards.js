@@ -5,16 +5,17 @@ const GAPS=[0,1,2,4,7,14,30], MAX_PASSES=3;
 const dayNum=()=>Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5);
 let dir=store.get("wqCardDir","en"), queue=[], again=[], pass=1, cur=null, shown=false, okN=0, noN=0, retried=new Set();
 
+const pool=()=>getScope("cards")==="weak"?allWords.filter(isWeak):allWords;
 const isDue=w=>{const c=S.cards[w.w]; return !c||c.d<=dayNum()};
 function dueList(){
  const dn=dayNum();
- const seen=allWords.filter(w=>S.cards[w.w]&&S.cards[w.w].d<=dn).sort((a,b)=>S.cards[a.w].d-S.cards[b.w].d);
- return [...seen,...shuffle(allWords.filter(w=>!S.cards[w.w]))];
+ const seen=pool().filter(w=>S.cards[w.w]&&S.cards[w.w].d<=dn).sort((a,b)=>S.cards[a.w].d-S.cards[b.w].d);
+ return [...seen,...shuffle(pool().filter(w=>!S.cards[w.w]))];
 }
-function dueCount(){ return allWords.filter(isDue).length; }
+function dueCount(all){ return (all?allWords:pool()).filter(isDue).length; }
 window.updateCardsBadge=()=>{
  const b=document.querySelector('.tabs [data-tab="cards"]'); if(!b) return;
- const n=dueCount(); let i=b.querySelector(".bdg");
+ const n=dueCount(true); let i=b.querySelector(".bdg");
  if(!n){ i&&i.remove(); return; }
  if(!i){ i=document.createElement("i"); i.className="bdg"; b.appendChild(i); }
  i.textContent=n;
@@ -79,16 +80,17 @@ function summary(){
  if($("cdMore")) $("cdMore").onclick=start;
 }
 function intro(){
- const n=dueCount(), total=allWords.length, gone=allWords.filter(w=>hidden.has(w.w)).length;
+ const n=dueCount(), total=pool().length, gone=allWords.filter(w=>hidden.has(w.w)).length;
  $("cdBody").innerHTML=n?`<p class="sub">${n} כרטיסים מחכים לך היום (מתוך ${total} מילים${gone?`, כולל ${gone} שהסרת כי למדת`:""}). כל המילים נכללות בסבב.</p>
   <button class="next top" id="cdStart">▶ התחלת סבב</button>`
   :`<div class="win">✓ סיימת הכל להיום!</div><p class="sub">הכרטיסים הבאים יחכו לך בהמשך. אפשר לתרגל שוב כבר עכשיו:</p><button class="next top" id="cdAll">▶ סבב נוסף על כל המילים</button>`;
  if($("cdStart")) $("cdStart").onclick=start;
- if($("cdAll")) $("cdAll").onclick=()=>{ begin(shuffle(allWords)); };
+ if($("cdAll")) $("cdAll").onclick=()=>{ begin(shuffle(pool())); };
 }
 
+HELP.cards=`<h3>🃏 כרטיסיות</h3><p>רואים מילה, מנסים להיזכר בתרגום, ואז לוחצים ״הצגת תשובה״ ומסמנים אם ידעתם. מילה שידעתם תחזור בעוד זמן ארוך יותר; מילה שלא ידעתם תחזור עוד היום.</p><p>🔁 הכפתור למעלה מחליף כיוון (אנגלית ← עברית או להפך). הכרטיסיות כוללות גם מילים שהסרתם כי למדתם.</p>`;
 games.cards={render(c){
- c.innerHTML=`<div class="tools top"><button id="cdDir"></button></div><div id="cdBody"></div>`;
+ c.innerHTML=gameBar("cards",allWords)+`<div class="tools top"><button id="cdDir"></button></div><div id="cdBody"></div>`;
  const mark=()=>$("cdDir").textContent=dir==="en"?"🔁 אנגלית ← עברית":"🔁 עברית ← אנגלית";
  mark();
  $("cdDir").onclick=()=>{ dir=dir==="en"?"he":"en"; store.set("wqCardDir",dir); mark(); if(cur&&!$("cdBody").querySelector(".win")) card(); else intro(); };

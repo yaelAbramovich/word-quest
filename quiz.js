@@ -1,5 +1,6 @@
 (function(){
 let mode=store.get("wqQuizMode","meaning"), current;
+const recent=recentWords(3);   // the same word never comes back within the next 3 questions
 
 const STEMS={strike:"struck",tumble:"tumbled","doze off":"dozed off"};
 const blankRe=w=>{ const x=(STEMS[w.w]||w.w).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); return new RegExp(w.custom?"\\b\\w*"+x+"\\w*":x,'i'); };
@@ -7,7 +8,8 @@ function options(prop){
  return shuffle([current,...shuffle(words.filter(x=>x!==current)).slice(0,3)]).map(x=>x[prop]);
 }
 function newRound(){
- current=pickWeighted(1,mode==="context"?(w=>w.exs.some(x=>blankRe(w).test(x))):null)[0];
+ current=pickWeighted(1,mode==="context"?(w=>w.exs.some(x=>blankRe(w).test(x))):null,recent.list)[0];
+ recent.add(current);
  rotateSentence(current,mode==="context"?(x=>blankRe(current).test(x)):null);
  let prompt,answers,correct,showWord=true,audioFirst=false;
  if(mode==="meaning"){
@@ -57,8 +59,10 @@ function answer(button,correct){
  $("next").disabled=false;
 }
 
+HELP.quiz=`<h3>🧠 חידון</h3><p>בוחרים סוג חידון ועונים על השאלה. אחרי כל תשובה רואים את התרגום והמשפט, ואפשר לעבור לאתגר הבא.</p>
+<p><b>משמעות</b> — מה פירוש המילה. <b>הקשר</b> — איזו מילה משלימה את המשפט. <b>שליפה</b> — איזו מילה באנגלית מתאימה להסבר. <b>האזנה</b> — שומעים מילה ובוחרים את המשמעות.</p>`;
 games.quiz={render(c){
- c.innerHTML=`<nav class="modes">
+ c.innerHTML=gameBar("quiz")+`<nav class="modes">
   <button class="mode" data-mode="meaning">🧠 משמעות</button>
   <button class="mode" data-mode="context">📖 הקשר</button>
   <button class="mode" data-mode="reverse">🎯 שליפה</button>

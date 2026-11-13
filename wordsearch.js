@@ -142,8 +142,9 @@ function hint(){
  }
 }
 
+HELP.wordsearch=`<h3>🔎 תפזורת</h3><p>גוררים את האצבע על האותיות (או לוחצים על האות הראשונה ואז על האחרונה) כדי לסמן מילה מהרשימה. כל מילה שנמצאה נשמעת ומתורגמת.</p><p>🌱/🔥 מצב אתגר מציג את הרשימה בעברית ומאפשר כיוונים הפוכים ואלכסוניים.</p>`;
 games.wordsearch={render(c){
- c.innerHTML=`<p class="sub">גררי את האצבע על האותיות (או לחצי על האות הראשונה ואז על האחרונה). כל מילה שנמצאה — נשמעת ומתורגמת.</p>
+ c.innerHTML=gameBar("wordsearch")+`
  <div class="tools top"><button id="wsHintBtn">💡 רמז</button><button id="wsHard"></button><button id="wsNew">🔄 תפזורת חדשה</button></div>
  <div class="wsgrid" id="wsGrid" dir="ltr"></div>
  <div class="chips" id="wsList"></div>
