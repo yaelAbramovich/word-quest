@@ -90,3 +90,5 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 .cwres{display:flex;gap:8px;align-items:center;background:#eaf8f0;border-radius:13px;padding:6px 8px;margin:0 0 10px}.cwres:empty{display:none}.cwres .sound.sm{margin:0;flex:none;width:34px;height:34px;font-size:16px;background:#fff}.cwtxt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14.5px}.cwmore{flex:none;border:0;background:transparent;color:var(--green);font:inherit;font-size:13px;font-weight:700;padding:6px 4px}
 .cwdet{background:#eaf8f0;border-radius:13px;padding:10px 12px;margin:-4px 0 10px;line-height:1.5;font-size:14.5px}.cwdet[hidden]{display:none}.cwdet .example{background:#fff;margin-top:6px;font-size:14px;padding:9px 11px}
 .win.cwwin{margin:0 0 8px;padding:8px 12px;font-size:14.5px}
+
+.wr textarea.ex{flex-basis:100%;min-width:0;border:2px solid #e3e3ee;border-radius:11px;padding:10px;font:inherit;font-size:16px;background:#fff;color:var(--dark);resize:vertical;box-sizing:border-box;direction:ltr;text-align:left}

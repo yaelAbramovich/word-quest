@@ -46,7 +46,7 @@ function parseText(text){
 }
 
 function drawRows(){
- $("awRows").innerHTML=rows.map((r,i)=>`<div class="wr"><input class="en" dir="ltr" data-i="${i}" data-f="en" placeholder="English" value="${esc(r.en)}" autocapitalize="none" autocorrect="off"><input data-i="${i}" data-f="he" placeholder="תרגום" value="${esc(r.he)}"><button data-del="${i}" aria-label="מחיקה">✕</button><input class="ex" data-i="${i}" data-f="m" placeholder="הסבר מורחב (לא חובה)" value="${esc(r.m||"")}"><input class="ex" dir="ltr" data-i="${i}" data-f="ex" placeholder="משפט באנגלית (לא חובה — אם ריק אחפש לבד)" value="${esc(r.ex||"")}" autocapitalize="none"></div>`).join("");
+ $("awRows").innerHTML=rows.map((r,i)=>`<div class="wr"><input class="en" dir="ltr" data-i="${i}" data-f="en" placeholder="English" value="${esc(r.en)}" autocapitalize="none" autocorrect="off"><input data-i="${i}" data-f="he" placeholder="תרגום" value="${esc(r.he)}"><button data-del="${i}" aria-label="מחיקה">✕</button><input class="ex" data-i="${i}" data-f="m" placeholder="הסבר מורחב (לא חובה)" value="${esc(r.m||"")}"><textarea class="ex" rows="2" dir="ltr" data-i="${i}" data-f="ex" placeholder="משפטים באנגלית — כל משפט בשורה נפרדת (לא חובה — אם ריק אחפש לבד)" autocapitalize="none">${esc(r.ex||"")}</textarea></div>`).join("");
  $("awSave").style.display=rows.length?"block":"none";
 }
 let editing=null;
@@ -125,7 +125,7 @@ async function add(){
  for(const r of rows){
   const en=r.en.trim().toLowerCase(), he=r.he.trim();
   if(!en||!he||!/[a-z]/.test(en)||allWords.some(w=>w.w===en)){ skipped++; keep.push(r); continue; }
-  const ex=(r.ex||"").trim(), w={w:en,he,m:(r.m||"").trim(),ex,exs:ex?[ex]:[],custom:1}; allWords.push(w); fresh.push(w); added++;
+  const exs=[...new Set((r.ex||"").split(/\n+/).map(x=>x.trim()).filter(Boolean))], ex=exs[0]||"", w={w:en,he,m:(r.m||"").trim(),ex,exs,custom:1}; allWords.push(w); fresh.push(w); added++;
  }
  rows=keep; saveCustom(); applyHidden(); renderStats();
  drawRows(); drawCustom();
@@ -165,7 +165,7 @@ games.addwords={render(c){
  <p class="tip">לקול טבעי יותר באייפון: הגדרות ← נגישות ← תוכן מדובר ← קולות ← English, והורידי קול שכתוב לידו Enhanced או Premium (למשל Ava או Samantha). אחרי ההורדה הוא ייבחר אוטומטית, או שאפשר לבחור אותו כאן.</p>
  </details>
  <details class="adder"><summary>➕ הוספת מילים חדשות (מתמונה או ידנית)</summary>
- <p class="sub">העלי תמונה עם מילים (למשל צילום של רשימה), ואני אזהה את הטקסט. אפשר לתקן, ולהוסיף הסבר מורחב ומשפט באנגלית בכל שורה — אם משאירים ריק, אחפש משפט אוטומטית. התמונה נשארת במכשיר שלך.</p>
+ <p class="sub">העלי תמונה עם מילים (למשל צילום של רשימה), ואני אזהה את הטקסט. אפשר לתקן, ולהוסיף הסבר מורחב ומשפטים באנגלית בכל שורה (כל משפט בשורה נפרדת, עם Enter) — אם משאירים ריק, אחפש משפט אוטומטית. התמונה נשארת במכשיר שלך.</p>
  <label class="up">📷 העלאת תמונה<input type="file" accept="image/*" id="awFile"></label>
  <img class="pv" id="awPv" alt="" style="display:none">
  <div class="st" id="awSt"></div>
