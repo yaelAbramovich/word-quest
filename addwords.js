@@ -69,7 +69,10 @@ function statLine(w){
 function drawCustom(){
  const gone=allWords.filter(w=>hidden.has(w.w));
  const val=w=>{const t=wstat(w); return !t.n?2:t.pct!==null?t.pct/100:t.c/t.n};   // untested words go last
- const act=[...words].sort(sortBy==="alpha"?(a,b)=>a.w.localeCompare(b.w):sortBy==="strong"?(a,b)=>{const ua=val(a)>1,ub=val(b)>1; return ua!==ub?(ua?1:-1):val(b)-val(a)}:(a,b)=>val(a)-val(b));
+ // the three buttons are filters: weak and strong never share a word (same split the games use); A-Z shows all
+ const act=(sortBy==="alpha"?[...words].sort((a,b)=>a.w.localeCompare(b.w))
+  :sortBy==="strong"?words.filter(w=>!isWeak(w)).sort((a,b)=>val(b)-val(a))
+  :words.filter(isWeak).sort((a,b)=>val(a)-val(b)));
  const st=words.map(wstat), withPct=st.filter(t=>t.pct!==null);
  const learning=st.filter(t=>t.n&&t.pct===null).length, fresh=st.filter(t=>!t.n).length;
  const avg=withPct.length?Math.round(withPct.reduce((x,t)=>x+t.pct,0)/withPct.length):null;
@@ -95,6 +98,7 @@ function drawCustom(){
  <div class="sum">${withPct.length} מילים עם אחוז${avg===null?"":` (ממוצע ${avg}%)`} · ${learning} בלמידה · ${fresh} חדשות${rec.length?` · 💡 ${rec.length} מומלצות להסרה`:""}</div>
  ${rec.length?`<div class="recl">המילים המומלצות להסרה: ${rec.map(w=>`<b dir="ltr">${esc(w.w)}</b>`).join(" · ")}</div><button class="next" style="display:block;margin:8px 0;background:var(--green)" data-removerec>💡 הסרת ${rec.length} המילים המומלצות להסרה</button>`:""}
  <div class="tools sorts">${sb("weak","הכי חלשות",nWeak)}${sb("strong","הכי חזקות",words.length-nWeak)}${sb("alpha","A-Z",words.length)}</div>
+ ${act.length?"":`<p class="sub">אין מילים בקטגוריה הזו כרגע.</p>`}
  <ul class="cl">${act.map((w,i)=>row(w,`<button data-copy="${esc(w.w)}" aria-label="העתקת מילה"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button><button data-say="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-edit="${esc(w.w)}" aria-label="עריכת משמעות ומשפטים">✏️</button><button data-hide="${esc(w.w)}" aria-label="מכירה טוב" title="מכירה טוב">✓</button>${w.custom?`<button data-rm="${esc(w.w)}" aria-label="מחיקה">✕</button>`:""}`,editing===w.w?editBox(w):statLine(w)+exLine(w),i+1)).join("")}</ul>`+
  (gone.length?`<h4>מילים שהוסרו (${gone.length})</h4><ul class="cl">${gone.map(w=>row(w,`<button data-restore="${esc(w.w)}" class="wide" aria-label="החזרה">↩ החזרה</button>`)).join("")}</ul>`:"");
 }
