@@ -58,12 +58,17 @@ const val=w=>{const t=wstat(w); return !t.n?2:t.pct!==null?t.pct/100:t.c/t.n};  
 let builder=null;   // while the group builder is open: {name,cat,picked:Set}
 const BUILD_CATS=[["all","הכל"],["new","חדשות"],["weak","חלשות"],["strong","חזקות"]];
 const builderPool=()=>builder.cat==="all"?words:words.filter(w=>category(w)===builder.cat);
+// the counter bar is updated on its own when a word is ticked, so the word list is not redrawn (it would jump back to the top)
+function builderSumHTML(){
+ const pool=builderPool(), n=builder.picked.size, other=[...builder.picked].filter(x=>!pool.some(w=>w.w===x)).length;
+ return `<div class="sum${n<GROUP_MIN?" warn":""}" id="gbSum">${n<GROUP_MIN?`⚠️ נבחרו ${n} מילים. צריך לפחות ${GROUP_MIN} מילים בקבוצה.`:`✓ נבחרו ${n} מילים.`} <small>(מינימום ${GROUP_MIN}; אפשר לסמן כמה שרוצים)</small>${other?`<div class="gbnote">${other} מהמילים שסומנו הן מקטגוריות אחרות ולא מוצגות כאן. בחרי ״הכל״ כדי לראות את כולן.</div>`:""}</div>`;
+}
 function builderHTML(){
- const pool=[...builderPool()].sort(alpha), n=builder.picked.size, hidden2=[...builder.picked].filter(x=>!pool.some(w=>w.w===x)).length;
+ const pool=[...builderPool()].sort(alpha);
  return `<div class="grp building"><h4>🎯 ${group?"עריכת הקבוצה":"קבוצה חדשה"}</h4>
  <label class="lbl">שם הקבוצה (אפשר לכתוב חופשי)</label><input id="gbName" maxlength="30" placeholder="למשל: מילים של השבוע" value="${esc(builder.name)}">
  <label class="lbl">מאיזו קטגוריה לבחור?</label><select id="gbCat">${BUILD_CATS.map(([k,t])=>`<option value="${k}"${builder.cat===k?" selected":""}>${t}</option>`).join("")}</select>
- <div class="sum${n<GROUP_MIN?" warn":""}">${n<GROUP_MIN?`⚠️ נבחרו ${n} מילים. צריך לפחות ${GROUP_MIN} מילים בקבוצה.`:`✓ נבחרו ${n} מילים.`} <small>(מינימום ${GROUP_MIN}; אפשר לסמן כמה שרוצים)</small>${hidden2?`<div class="gbnote">${hidden2} מהמילים שסומנו הן מקטגוריות אחרות ולא מוצגות כאן. בחרי ״הכל״ כדי לראות את כולן.</div>`:""}</div>
+ ${builderSumHTML()}
  <ul class="cl gbl">${pool.map(w=>`<li><label class="gbpick"><input type="checkbox" data-gbpick="${esc(w.w)}"${builder.picked.has(w.w)?" checked":""}><span><b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span></label></li>`).join("")}</ul>
  <div class="tools"><button class="wide" id="gbSave">💾 שמירת הקבוצה</button><button class="wide" id="gbCancel">ביטול</button></div></div>`;
 }
@@ -90,7 +95,7 @@ function groupChange(e){
  if(!builder) return false;
  if(e.target.id==="gbCat"){ builder.cat=e.target.value; drawCustom(); return true; }
  if(e.target.dataset.gbpick!==undefined){
-  const n=e.target.dataset.gbpick; e.target.checked?builder.picked.add(n):builder.picked.delete(n); drawCustom(); return true;
+  const n=e.target.dataset.gbpick; e.target.checked?builder.picked.add(n):builder.picked.delete(n); $("gbSum").outerHTML=builderSumHTML(); return true;
  }
  return false;
 }

@@ -20,6 +20,15 @@ const {openApp,check,done}=require("./helpers");
  await page.locator("[data-gbpick]").nth(5).check();
  check("no upper limit: a 6th word can be ticked",(await page.$$eval("[data-gbpick]:checked",e=>e.length))===6);
  await page.locator("[data-gbpick]").nth(5).uncheck();
+ // ticking a word must not redraw/jump the list
+ const low=page.locator("[data-gbpick]").nth(14);
+ await low.scrollIntoViewIfNeeded();
+ const before=await page.evaluate(()=>({list:document.querySelector(".gbl").scrollTop,page:window.scrollY}));
+ await low.check();
+ const after=await page.evaluate(()=>({list:document.querySelector(".gbl").scrollTop,page:window.scrollY,n:document.querySelectorAll("[data-gbpick]:checked").length,sum:document.querySelector("#gbSum").textContent}));
+ check("ticking a lower word does not move the list",before.list>0&&after.list===before.list&&after.page===before.page,JSON.stringify({before,after}));
+ check("the tick is kept and the counter updates",after.n===6&&after.sum.includes("נבחרו 6"),JSON.stringify(after));
+ await low.uncheck();
  await page.click("#gbSave");
  check("group section shows the free-text name and count",(await page.textContent(".grp")).includes("מילים של השבוע")&&(await page.textContent(".grp")).includes("5 מילים"));
  const stored=await page.evaluate(()=>JSON.parse(localStorage.wqGroup));
