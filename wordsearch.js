@@ -4,12 +4,11 @@ const EASY=[[0,1],[1,0],[1,1]];
 const HARD=[[0,1],[1,0],[1,1],[0,-1],[-1,0],[-1,-1],[1,-1],[-1,1]];
 let G, els=[], sel=[], dragging=false, moved=false, down=null, anchor=null, anchorT=0, mode="first";
 
-function generate(){
- const hard=store.get("wqHard","0")==="1";
- const dirs=hard?HARD:EASY;
+const CAP=7;
+const fitWords=()=>poolFor("wordsearch").filter(w=>{const n=letters(w).length;return n>=3&&n<=SIZE;});
+function attempt(ws,dirs){
  const grid=Array.from({length:SIZE},()=>Array(SIZE).fill(""));
  const placed=[];
- const ws=pickWeighted(7,w=>letters(w).length<=SIZE&&letters(w).length>=3).sort((a,b)=>letters(b).length-letters(a).length);
  for(const w of ws){
   const L=letters(w);
   for(let t=0;t<300;t++){
@@ -25,9 +24,25 @@ function generate(){
    break;
   }
  }
- const pool=ws.map(letters).join("")+"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
- for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++) if(!grid[r][c]) grid[r][c]=pool[Math.floor(Math.random()*pool.length)];
- return {grid,placed,hard,colors:{},won:false,hintCell:null,miss:new Set()};
+ return {grid,placed};
+}
+function generate(){
+ const hard=store.get("wqHard","0")==="1";
+ const dirs=hard?HARD:EASY;
+ const pool=poolFor("wordsearch"), fit=fitWords(), sub=fit.length>CAP;
+ let best=null;
+ for(let t=0;t<(sub?1:12);t++){          // a small pool is retried until every word is placed
+  const ws=(sub?pickSet("wordsearch",CAP,w=>fit.includes(w)):fit).slice().sort((a,b)=>letters(b).length-letters(a).length);
+  const a=attempt(ws,dirs); a.ws=ws;
+  if(!best||a.placed.length>best.placed.length) best=a;
+  if(a.placed.length===ws.length) break;
+ }
+ const {grid,placed,ws}=best;
+ const pool2=ws.map(letters).join("")+"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+ for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++) if(!grid[r][c]) grid[r][c]=pool2[Math.floor(Math.random()*pool2.length)];
+ // words that did not make it into this grid (or are too short/long for it) are listed, never replaced by other words
+ const missed=sub?[]:ws.filter(w=>!placed.some(p=>p.w===w)).concat(pool.filter(w=>!fit.includes(w)));
+ return {grid,placed,hard,colors:{},won:false,hintCell:null,miss:new Set(),missed,shown:sub?placed.length:null,total:pool.length};
 }
 
 // The grid is built once and only its classes change while dragging.
@@ -49,6 +64,10 @@ function drawList(){
  $("wsList").innerHTML=G.placed.map(p=>`<span class="chip${p.found?" done f"+p.idx:""}" ${p.found?`data-sw="${p.w.w}"`:""}>${
   p.found?`<b dir="ltr">${p.w.w}</b> — ${p.w.he} 🔊`:G.hard?p.w.he:`<span dir="ltr">${p.w.w}</span>`}</span>`).join("");
  $("wsHard").textContent=G.hard?"🔥 מצב אתגר: פעיל":"🌱 מצב רגיל";
+ const parts=[];
+ if(G.shown!==null) parts.push(`מוצגות ${G.shown} מתוך ${G.total} מילים`);
+ if(G.missed.length) parts.push(`לא נכנסו הפעם: ${G.missed.map(w=>`<b dir="ltr">${w.w}</b>`).join(", ")}`);
+ $("wsNote").innerHTML=parts.join(" · ");
 }
 
 function cellAt(x,y){
@@ -104,7 +123,7 @@ function finish(){
 
 function bind(grid){
  grid.addEventListener("pointerdown",e=>{
-  const c=cellAt(e.clientX,e.clientY); if(!c||G.won) return;
+  const c=cellAt(e.clientX,e.clientY); if(!c||G.won||$("gBody").hidden) return;
   try{ grid.setPointerCapture(e.pointerId); }catch(x){}
   G.hintCell=null; dragging=true; moved=false; down=c;
   mode=(anchor&&Date.now()-anchorT<6000)?"second":"first";
@@ -128,10 +147,13 @@ function bind(grid){
 }
 
 function newGame(){
+ const n=fitWords().length;
+ if(!gateGame(n>=3?"":`בתפזורת צריך לפחות 3 מילים באורך 3–10 אותיות (בבחירה הזו יש ${n}).`)) return;
  G=generate(); sel=[]; dragging=false; moved=false; anchor=null;
  $("wsInfo").innerHTML=""; buildGrid(); drawList(); paint();
 }
 function hint(){
+ if(!G||$("gBody").hidden) return;
  const left=G.placed.filter(p=>!p.found); if(!left.length) return;
  const p=left[Math.floor(Math.random()*left.length)];
  // find where the word's first letter sits by scanning the grid for the word
@@ -142,13 +164,14 @@ function hint(){
  }
 }
 
-HELP.wordsearch=`<h3>🔎 תפזורת</h3><p>גוררים את האצבע על האותיות (או לוחצים על האות הראשונה ואז על האחרונה) כדי לסמן מילה מהרשימה. כל מילה שנמצאה נשמעת ומתורגמת.</p><p>🌱/🔥 מצב אתגר מציג את הרשימה בעברית ומאפשר כיוונים הפוכים ואלכסוניים.</p>`;
+HELP.wordsearch=`<h3>🔎 תפזורת</h3><p>גוררים את האצבע על האותיות (או לוחצים על האות הראשונה ואז על האחרונה) כדי לסמן מילה מהרשימה. כל מילה שנמצאה נשמעת ומתורגמת.</p><p>🌱/🔥 מצב אתגר מציג את הרשימה בעברית ומאפשר כיוונים הפוכים ואלכסוניים.</p><p>בתפזורת צריך לפחות 3 מילים (באורך 3–10 אותיות). למעלה בוחרים אילו מילים לשחק; המשחק משתמש רק בהן, ומילים שלא נכנסו מופיעות מתחת ללוח.</p>`;
 games.wordsearch={render(c){
- c.innerHTML=gameBar("wordsearch")+`
+ c.innerHTML=gameBar("wordsearch")+`<div id="gBody">
  <div class="tools top"><button id="wsHintBtn">💡 רמז</button><button id="wsHard"></button><button id="wsNew">🔄 תפזורת חדשה</button></div>
  <div class="wsgrid" id="wsGrid" dir="ltr"></div>
  <div class="chips" id="wsList"></div>
- <div id="wsInfo"></div>`;
+ <div class="gnote" id="wsNote"></div>
+ <div id="wsInfo"></div></div>`;
  bind($("wsGrid"));
  $("wsNew").onclick=newGame; $("wsHintBtn").onclick=hint;
  $("wsHard").onclick=()=>{store.set("wqHard",store.get("wqHard","0")==="1"?"0":"1"); newGame()};
