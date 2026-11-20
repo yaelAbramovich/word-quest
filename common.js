@@ -29,12 +29,18 @@ words.forEach(w=>{
 // words you know well can be hidden: they are removed from `words`, which every game uses
 const allWords=[...words];
 const hidden=new Set(parse("wqHidden","[]"));
+// "my group": one small named set of words you chose to work on (word names are stored; only active words count)
+let group=parse("wqGroup","null");
+const GROUP_MIN=4;
+function saveGroup(){ store.set("wqGroup",JSON.stringify(group)); }
 const MIN_WORDS=8;
 function applyHidden(){ words.length=0; words.push(...allWords.filter(w=>!hidden.has(w.w))); }
 function saveHidden(){ store.set("wqHidden",JSON.stringify([...hidden])); }
 function hideWord(w){
  if(words.length<=MIN_WORDS){ toast(`צריך לפחות ${MIN_WORDS} מילים פעילות כדי שהמשחקים יעבדו`); return false; }
- hidden.add(w.w); saveHidden(); applyHidden(); return true;
+ hidden.add(w.w); saveHidden(); applyHidden();
+ if(group){ group.words=group.words.filter(n=>n!==w.w); saveGroup(); }   // a removed word leaves the group
+ return true;
 }
 function restoreWord(name){ hidden.delete(name); saveHidden(); applyHidden(); }
 applyHidden();
@@ -79,7 +85,35 @@ function isWeak(w){
  if(!t.n) return true;
  return (t.pct!==null?t.pct/100:t.c/t.n)<0.8;
 }
-const getScope=g=>store.get("wqScope_"+g,"all");
+// ---- categories: every active word is in exactly one ----
+const CAT_NAME={new:"חדשות",weak:"חלשות",strong:"חזקות"};
+function category(w){
+ const t=wstat(w);
+ if(!t.n) return "new";
+ return t.pct!==null&&t.pct>=80?"strong":"weak";   // strong only when a percentage is shown (10 attempts) and it is 80%+
+}
+// ---- which words a game plays: the choice (all / new / weak / strong / group) decides the pool ----
+const SCOPES=["all","new","weak","strong","group"];
+const isShared=()=>store.get("wqScopeShared","0")==="1";
+function getScope(g){
+ let s=isShared()?store.get("wqScopeSharedValue","all"):store.get("wqScope_"+g,"all");
+ if(!SCOPES.includes(s)||(s==="group"&&!group)) s="all";
+ return s;
+}
+function groupWords(){ return group?words.filter(w=>group.words.includes(w.w)):[]; }
+// the flashcards' "all" also includes the words you removed (they keep being reviewed)
+function poolOf(scope,game){
+ if(scope==="group") return groupWords();
+ if(scope==="all") return game==="cards"?allWords:words;
+ return words.filter(w=>category(w)===scope);
+}
+const poolFor=g=>poolOf(getScope(g),g);
+// up to n words from the game's pool (never from outside it); `avoid` = recent word names, skipped while enough others remain
+function pickSet(game,n,filter,avoid){
+ let base=poolFor(game).filter(filter||(()=>true));
+ if(avoid&&avoid.length){ const f=base.filter(w=>!avoid.includes(w.w)); if(f.length>=n) base=f; }
+ return drawWeighted(base,n);
+}
 function drawWeighted(list,n){
  return list.map(w=>({w,k:Math.pow(Math.random(),1/weightOf(w))}))
   .sort((a,b)=>b.k-a.k).slice(0,n).map(x=>x.w);
