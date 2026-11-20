@@ -121,7 +121,6 @@ function recentWords(size){
 
 // ---- compact game bar: scope switch + a small "?" that opens the instructions (no space taken from the game) ----
 const HELP={};
-const isWeak=w=>category(w)!=="strong";   // temporary: deleted when the Words tab moves to category()
 const escHtml=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function scopeLabel(s,game){
  const n=poolOf(s,game).length;

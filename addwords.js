@@ -51,7 +51,10 @@ function drawRows(){
 }
 let editing=null;
 const openEx=new Set(), openM=new Set();
-let sortBy=store.get("wqSort","weak");
+const FILTERS=["all","new","weak","strong","group"];
+let filt=store.get("wqFilter","all");
+const alpha=(a,b)=>a.w.localeCompare(b.w);
+const val=w=>{const t=wstat(w); return !t.n?2:t.pct!==null?t.pct/100:t.c/t.n};   // sort key: lower = weaker
 function statLine(w){
  const t=wstat(w);
  if(!t.n) return `<div class="st2"><span>חדשה — עוד לא תורגלה בתשבץ או בחידון</span></div>`;
@@ -68,13 +71,15 @@ function statLine(w){
 }
 function drawCustom(){
  const gone=allWords.filter(w=>hidden.has(w.w));
- const val=w=>{const t=wstat(w); return !t.n?2:t.pct!==null?t.pct/100:t.c/t.n};   // untested words go last
- // the three buttons are filters: weak and strong never share a word (same split the games use); A-Z shows all
- const act=(sortBy==="alpha"?[...words].sort((a,b)=>a.w.localeCompare(b.w))
-  :sortBy==="strong"?words.filter(w=>!isWeak(w)).sort((a,b)=>val(b)-val(a))
-  :words.filter(isWeak).sort((a,b)=>val(a)-val(b)));
- const st=words.map(wstat), withPct=st.filter(t=>t.pct!==null);
- const learning=st.filter(t=>t.n&&t.pct===null).length, fresh=st.filter(t=>!t.n).length;
+ const cnt={all:words.length,new:0,weak:0,strong:0}; words.forEach(w=>cnt[category(w)]++);
+ const hasGroup=!!group&&groupWords().length>0;
+ if(!FILTERS.includes(filt)||(filt==="group"&&!hasGroup)) filt="all";
+ const act=filt==="strong"?words.filter(w=>category(w)==="strong").sort((a,b)=>val(b)-val(a))
+  :filt==="weak"?words.filter(w=>category(w)==="weak").sort((a,b)=>val(a)-val(b))
+  :filt==="new"?words.filter(w=>category(w)==="new").sort(alpha)
+  :filt==="group"?groupWords().sort(alpha)
+  :[...words].sort(alpha);
+ const withPct=words.map(wstat).filter(t=>t.pct!==null);
  const avg=withPct.length?Math.round(withPct.reduce((x,t)=>x+t.pct,0)/withPct.length):null;
  const row=(w,btns,extra,n)=>`<li><span>${n?`<span class="num">${n}.</span> `:""}<b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span>${btns}${extra||""}</li>`;
  const copyIcon=`<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>`;
@@ -90,16 +95,21 @@ function drawCustom(){
  const editBox=w=>`<div class="editbox"><label>משמעות (מה שמוצג במשחקים)</label><input id="edHe" value="${esc(w.he)}"><label>הסבר מורחב (לא חובה)</label><input id="edM" value="${esc(w.m||"")}"><label>משפטים באנגלית — כל משפט בשורה נפרדת. במשחקים נבחר משפט אקראי, בלי לחזור על אותו משפט פעמיים ברציפות.</label><textarea id="edEx" dir="ltr" rows="4" autocapitalize="none">${esc(w.exs.join("\n"))}</textarea><div class="tools"><button class="wide" data-edsave="${esc(w.w)}">💾 שמירה</button><button class="wide" data-edfind="${esc(w.w)}">🔍 הוספת משפט</button><button class="wide" data-edcancel>ביטול</button></div></div>`;
  const rec=words.filter(w=>wstat(w).mastered);
  const missing=customWords().filter(w=>!w.ex&&!hidden.has(w.w)).length;
- const nWeak=words.filter(isWeak).length;
- const sb=(k,t,n)=>`<button data-sort="${k}" class="${sortBy===k?"on":""}">${t} (${n})</button>`;
+ const fb=(k,t,n)=>`<button data-filter="${k}" class="${filt===k?"on":""}">${t} (${n})</button>`;
+ const sv0=store.get("wqScopeSharedValue","all"), shared=isShared();
+ const shCur=!SCOPES.includes(sv0)||(sv0==="group"&&!hasGroup)?"all":sv0;
+ const sharedBox=`<div class="sharedbox"><label class="chk"><input type="checkbox" id="shChk"${shared?" checked":""}> השתמש בבחירה אחת בכל המשחקים</label>
+  <select id="shSel"${shared?"":" disabled"} aria-label="הבחירה המשותפת">${SCOPES.filter(s=>s!=="group"||hasGroup).map(s=>`<option value="${s}"${s===shCur?" selected":""}>${scopeLabel(s,"words")}</option>`).join("")}</select>
+  <p class="tip">${shared?"כל המשחקים משתמשים בבחירה הזו, והבחירה בתוך כל משחק נעולה.":"כבוי: בכל משחק אפשר לבחור בנפרד אילו מילים לשחק."}</p></div>`;
  $("awList").innerHTML=`<h4>המילים במשחקים (${words.length})</h4>
- <p class="sub">האחוז נמדד רק בתשבץ ובחידון, ומופיע אחרי ${WINDOW} ניסיונות. הוא מבוסס על ${WINDOW} הניסיונות האחרונים. 100% = כל הניסיונות נכונים, עם הצלחות ב-${DAYS_FOR_100} ימים שונים. בפחות ימים — המקסימום 90%. רמז או "גלי מילה" נחשבים כאילו לא ידעת. מילים חדשות וחלשות יופיעו יותר. בנוסף, מתחת לכל מילה מוצגת הספירה הכוללת מאז ומעולם: הצלחות, טעויות וכמה פעמים נעזרת ברמז.</p>
+ <p class="sub">חדשה = עוד לא תורגלה. חלשה = תורגלה ועדיין אין אחוז, או שהאחוז מתחת ל-80%. חזקה = יש אחוז (אחרי ${WINDOW} ניסיונות) ו-80% ומעלה. האחוז נמדד רק בתשבץ ובחידון, ומופיע אחרי ${WINDOW} ניסיונות. הוא מבוסס על ${WINDOW} הניסיונות האחרונים. 100% = כל הניסיונות נכונים, עם הצלחות ב-${DAYS_FOR_100} ימים שונים. בפחות ימים — המקסימום 90%. רמז או "גלי מילה" נחשבים כאילו לא ידעת. מילים חדשות וחלשות יופיעו יותר. בנוסף, מתחת לכל מילה מוצגת הספירה הכוללת מאז ומעולם: הצלחות, טעויות וכמה פעמים נעזרת ברמז.</p>
  ${missing?`<button class="next" style="display:block;margin:8px 0" data-fillall>🔍 חיפוש משפטים ל-${missing} מילים שחסר להן</button>`:""}
- <div class="sum">${withPct.length} מילים עם אחוז${avg===null?"":` (ממוצע ${avg}%)`} · ${learning} בלמידה · ${fresh} חדשות${rec.length?` · 💡 ${rec.length} מומלצות להסרה`:""}</div>
+ <div class="sum">${cnt.new} חדשות · ${cnt.weak} חלשות · ${cnt.strong} חזקות${avg===null?"":` · ממוצע ${avg}%`}${rec.length?` · 💡 ${rec.length} מומלצות להסרה`:""}</div>
  ${rec.length?`<div class="recl">המילים המומלצות להסרה: ${rec.map(w=>`<b dir="ltr">${esc(w.w)}</b>`).join(" · ")}</div><button class="next" style="display:block;margin:8px 0;background:var(--green)" data-removerec>💡 הסרת ${rec.length} המילים המומלצות להסרה</button>`:""}
- <div class="tools sorts">${sb("weak","הכי חלשות",nWeak)}${sb("strong","הכי חזקות",words.length-nWeak)}${sb("alpha","A-Z",words.length)}</div>
+ ${sharedBox}
+ <div class="tools sorts">${fb("all","הכל",cnt.all)}${fb("new","חדשות",cnt.new)}${fb("weak","חלשות",cnt.weak)}${fb("strong","חזקות",cnt.strong)}${hasGroup?fb("group",`🎯 ${esc(group.name)}`,groupWords().length):""}</div>
  ${act.length?"":`<p class="sub">אין מילים בקטגוריה הזו כרגע.</p>`}
- <ul class="cl">${act.map((w,i)=>row(w,`<button data-copy="${esc(w.w)}" aria-label="העתקת מילה"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button><button data-say="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-edit="${esc(w.w)}" aria-label="עריכת משמעות ומשפטים">✏️</button><button data-hide="${esc(w.w)}" aria-label="מכירה טוב" title="מכירה טוב">✓</button>${w.custom?`<button data-rm="${esc(w.w)}" aria-label="מחיקה">✕</button>`:""}`,editing===w.w?editBox(w):statLine(w)+exLine(w),i+1)).join("")}</ul>`+
+ <ul class="cl" id="awMain">${act.map((w,i)=>row(w,`<button data-copy="${esc(w.w)}" aria-label="העתקת מילה"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button><button data-say="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-edit="${esc(w.w)}" aria-label="עריכת משמעות ומשפטים">✏️</button><button data-hide="${esc(w.w)}" aria-label="מכירה טוב" title="מכירה טוב">✓</button>${w.custom?`<button data-rm="${esc(w.w)}" aria-label="מחיקה">✕</button>`:""}`,editing===w.w?editBox(w):statLine(w)+exLine(w),i+1)).join("")}</ul>`+
  (gone.length?`<h4>מילים שהוסרו (${gone.length})</h4><ul class="cl">${gone.map(w=>row(w,`<button data-restore="${esc(w.w)}" class="wide" aria-label="החזרה">↩ החזרה</button>`)).join("")}</ul>`:"");
 }
 
@@ -220,8 +230,8 @@ games.addwords={render(c){
    if(confirm(`להסיר ${rec.length} מילים שאת מכירה היטב מהמשחקים?\n\n${rec.map(w=>w.w).join(", ")}\n\nאפשר להחזיר אותן בהמשך.`)){ for(const w of rec) if(!hideWord(w)) break; drawCustom(); }
    return; }
   if(e.target.closest("[data-fillall]")){ fillSentences(customWords().filter(w=>!w.ex&&!hidden.has(w.w))); return; }
-  const so=e.target.closest("[data-sort]");
-  if(so){ sortBy=so.dataset.sort; store.set("wqSort",sortBy); drawCustom(); return; }
+  const fl=e.target.closest("[data-filter]");
+  if(fl){ filt=fl.dataset.filter; store.set("wqFilter",filt); drawCustom(); return; }
   const h=e.target.closest("[data-hide]");
   if(h){ const w=allWords.find(x=>x.w===h.dataset.hide); if(w&&hideWord(w)) drawCustom(); return; }
   const r=e.target.closest("[data-restore]");
@@ -229,6 +239,10 @@ games.addwords={render(c){
   const d=e.target.closest("[data-rm]"); if(!d) return;
   const i=allWords.findIndex(w=>w.custom&&w.w===d.dataset.rm); if(i>=0) allWords.splice(i,1);
   hidden.delete(d.dataset.rm); saveHidden(); saveCustom(); applyHidden(); renderStats(); drawCustom();
+ });
+ $("awList").addEventListener("change",e=>{
+  if(e.target.id==="shChk"){ store.set("wqScopeShared",e.target.checked?"1":"0"); drawCustom(); return; }
+  if(e.target.id==="shSel"){ store.set("wqScopeSharedValue",e.target.value); drawCustom(); return; }
  });
  document.addEventListener("sentencechanged",()=>{ if($("awList")) drawCustom(); },{once:false});
  drawRows(); drawCustom();
