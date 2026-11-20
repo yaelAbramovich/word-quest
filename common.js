@@ -80,11 +80,6 @@ function weightOf(w){
  return Math.max(t.pct===null?2:1,1+4*(1-rate))+(S.mistakes[w.w]||0);
 }
 // ---- scope: every game can use all words, or only the weak ones (new, or under 80% correct) ----
-function isWeak(w){
- const t=wstat(w);
- if(!t.n) return true;
- return (t.pct!==null?t.pct/100:t.c/t.n)<0.8;
-}
 // ---- categories: every active word is in exactly one ----
 const CAT_NAME={new:"חדשות",weak:"חלשות",strong:"חזקות"};
 function category(w){
@@ -118,17 +113,6 @@ function drawWeighted(list,n){
  return list.map(w=>({w,k:Math.pow(Math.random(),1/weightOf(w))}))
   .sort((a,b)=>b.k-a.k).slice(0,n).map(x=>x.w);
 }
-// `avoid` = names of words shown very recently: they are skipped as long as enough other words remain
-function pickWeighted(n,filter,avoid){
- let base=words.filter(filter||(()=>true));
- if(avoid&&avoid.length){ const f=base.filter(w=>!avoid.includes(w.w)); if(f.length>=n) base=f; }
- if(getScope(currentTab)==="weak"){
-  const got=drawWeighted(base.filter(isWeak),n);   // not enough weak words: complete from the others
-  if(got.length<n) got.push(...drawWeighted(base.filter(w=>!got.includes(w)),n-got.length));
-  return got;
- }
- return drawWeighted(base,n);
-}
 // remembers the last few words of a game so the same word does not come back right away
 function recentWords(size){
  const a=[];
@@ -137,13 +121,34 @@ function recentWords(size){
 
 // ---- compact game bar: scope switch + a small "?" that opens the instructions (no space taken from the game) ----
 const HELP={};
-function gameBar(game,pool){
- const sc=getScope(game), weak=(pool||words).filter(isWeak).length;
- return `<div class="gbar"><div class="seg">
-  <button data-scope="all" class="${sc==="all"?"on":""}">כל המילים</button>
-  <button data-scope="weak" class="${sc==="weak"?"on":""}">רק חלשות (${weak})</button></div>
-  <button class="helpbtn" data-help="${game}" aria-label="הוראות" aria-haspopup="dialog">?</button></div>`;
+const isWeak=w=>category(w)!=="strong";   // temporary: deleted when the Words tab moves to category()
+function pickWeighted(n,filter,avoid){ return pickSet(currentTab,n,filter,avoid); }   // temporary shim: removed when the last game moves to pickSet
+const escHtml=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function scopeLabel(s,game){
+ const n=poolOf(s,game).length;
+ if(s==="group") return `🎯 ${escHtml(group.name)} (${n})`;
+ if(s==="all"){
+  const gone=game==="cards"?allWords.length-words.length:0;
+  return `הכל (${n}${gone?`, מתוכן ${gone} שהוסרו`:""})`;
+ }
+ return `${CAT_NAME[s]} (${n})`;
 }
+// compact game bar: which words to play + a small "?" that opens the instructions
+function gameBar(game){
+ const sc=getScope(game);
+ const pick=isShared()
+  ?`<div class="scopelock">🔗 בחירה משותפת: <b>${scopeLabel(sc,game)}</b><small>לשינוי: לשונית מילים</small></div>`
+  :`<select class="scopesel" id="scopeSel" aria-label="אילו מילים לשחק">${SCOPES.filter(s=>s!=="group"||group).map(s=>`<option value="${s}"${s===sc?" selected":""}>${scopeLabel(s,game)}</option>`).join("")}</select>`;
+ return `<div class="gbar">${pick}<button class="helpbtn" data-help="${game}" aria-label="הוראות" aria-haspopup="dialog">?</button></div><div id="gMsg"></div>`;
+}
+// true = the game may run. With a message: show it (instead of the game) and hide the game body `#gBody`
+function gateGame(msg){
+ const m=$("gMsg"), b=$("gBody");
+ if(m) m.innerHTML=msg?`<div class="gwarn">${msg}</div>`:"";
+ if(b) b.hidden=!!msg;
+ return !msg;
+}
+
 function showHelp(html){
  document.querySelectorAll(".helpov").forEach(x=>x.remove());
  const d=document.createElement("div"); d.className="helpov";
@@ -219,8 +224,6 @@ function speakWithSentence(w,notify){ rotateSentence(w); say([w.w,w.ex],notify);
 document.addEventListener("click",e=>{
  const xe=e.target.closest("[data-exedit]");
  if(xe){ const w=allWords.find(x=>x.w===xe.dataset.exedit); if(w&&w.ex) editSentence(w); return; }
- const sc=e.target.closest("[data-scope]");
- if(sc){ store.set("wqScope_"+currentTab,sc.dataset.scope); showTab(currentTab); return; }
  const hp=e.target.closest("[data-help]");
  if(hp){ showHelp(HELP[hp.dataset.help]||""); return; }
  const m=e.target.closest("#mute");
@@ -341,6 +344,9 @@ async function anotherSentence(w){
  return next;
 }
 
+document.addEventListener("change",e=>{
+ if(e.target.id==="scopeSel"){ store.set("wqScope_"+currentTab,e.target.value); showTab(currentTab); }
+});
 // on-screen English keyboard (works on iPhone even when the phone keyboard is Hebrew)
 function keyboardHTML(back){
  const rows=["QWERTYUIOP","ASDFGHJKL","ZXCVBNM"];

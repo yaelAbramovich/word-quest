@@ -15,9 +15,12 @@ function options(prop){
  return shuffle([current,...wrong]).map(x=>x[prop]);
 }
 function newRound(){
- current=pickWeighted(1,mode==="context"?(w=>w.exs.some(x=>blankRe(w).test(x))):null,recent.list)[0];
+ const ctx=mode==="context", fits=w=>w.exs.some(x=>blankRe(w).test(x));
+ const pool=poolFor("quiz").filter(w=>!ctx||fits(w));
+ if(!gateGame(pool.length?"":ctx?"אין בבחירה הזו מילים עם משפט שמתאים לחידון הקשר":"אין מילים בבחירה הזו")) return;
+ current=pickSet("quiz",1,ctx?fits:null,recent.list)[0];
  recent.add(current);
- rotateSentence(current,mode==="context"?(x=>blankRe(current).test(x)):null);
+ rotateSentence(current,ctx?(x=>blankRe(current).test(x)):null);
  let prompt,answers,correct,showWord=true,audioFirst=false;
  if(mode==="meaning"){
   prompt=`מה המשמעות המדויקת ביותר של <b dir="ltr">${current.w}</b>?`;
@@ -67,7 +70,7 @@ function answer(button,correct){
 }
 
 HELP.quiz=`<h3>🧠 חידון</h3><p>בוחרים סוג חידון ועונים על השאלה. אחרי כל תשובה רואים את התרגום והמשפט, ואפשר לעבור לאתגר הבא.</p>
-<p><b>משמעות</b> — מה פירוש המילה. <b>הקשר</b> — איזו מילה משלימה את המשפט. <b>שליפה</b> — איזו מילה באנגלית מתאימה להסבר. <b>האזנה</b> — שומעים מילה ובוחרים את המשמעות.</p>`;
+<p><b>משמעות</b> — מה פירוש המילה. <b>הקשר</b> — איזו מילה משלימה את המשפט. <b>שליפה</b> — איזו מילה באנגלית מתאימה להסבר. <b>האזנה</b> — שומעים מילה ובוחרים את המשמעות.</p><p>למעלה בוחרים אילו מילים לשחק (הכל / חדשות / חלשות / חזקות / הקבוצה שלי). המשחק משתמש רק במילים שנבחרו.</p>`;
 // the sentence was edited while a "context" question is open: show the new one with the word hidden again
 document.addEventListener("sentenceedited",()=>{
  const el=document.querySelector("#qgame [data-blank]");
@@ -78,7 +81,7 @@ games.quiz={render(c){
   <button class="mode" data-mode="meaning">🧠 משמעות</button>
   <button class="mode" data-mode="context">📖 הקשר</button>
   <button class="mode" data-mode="reverse">🎯 שליפה</button>
-  <button class="mode" data-mode="listen">🔊 האזנה</button></nav><div id="qgame"></div>`;
+  <button class="mode" data-mode="listen">🔊 האזנה</button></nav><div id="gBody"><div id="qgame"></div></div>`;
  const mark=()=>c.querySelectorAll(".mode").forEach(x=>x.classList.toggle("active",x.dataset.mode===mode));
  c.querySelectorAll(".mode").forEach(b=>b.onclick=()=>{mode=b.dataset.mode;store.set("wqQuizMode",mode);mark();newRound()});
  mark(); newRound();

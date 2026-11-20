@@ -4,7 +4,8 @@ let H;
 const recent=recentWords(3);
 
 function newWord(){
- const w=pickWeighted(1,null,recent.list)[0]; recent.add(w);
+ if(!gateGame(poolFor("hangman").length?"":"אין מילים בבחירה הזו")) return;
+ const w=pickSet("hangman",1,null,recent.list)[0]; recent.add(w);
  H={w,L:letters(w),guessed:new Set(),wrong:0,done:false};
  $("hmInfo").innerHTML=""; draw();
  speak(w.w); // hearing the word first helps with spelling
@@ -52,17 +53,16 @@ function hint(){
  H.wrong++; key(left[Math.floor(Math.random()*left.length)]);
 }
 
-HELP.hangman=`<h3>🪢 איש תלוי</h3><p>מקשיבים למילה, קוראים את התרגום, ומנחשים אות אחר אות באמצעות המקלדת. כל טעות מוסיפה חלק לאיש התלוי — יש 6 חיים.</p><p>💡 רמז חושף אות אחת, ועולה בחיים.</p>`;
+HELP.hangman=`<h3>🪢 איש תלוי</h3><p>מקשיבים למילה, קוראים את התרגום, ומנחשים אות אחר אות באמצעות המקלדת. כל טעות מוסיפה חלק לאיש התלוי — יש 6 חיים.</p><p>💡 רמז חושף אות אחת, ועולה בחיים.</p><p>למעלה בוחרים אילו מילים לשחק. המשחק משתמש רק במילים שנבחרו.</p>`;
 games.hangman={render(c){
- c.innerHTML=gameBar("hangman")+`
+ c.innerHTML=gameBar("hangman")+`<div id="gBody">
  <div class="tools top"><button id="hmHear">🔊 השמעה</button><button id="hmHint">💡 רמז (עולה חיים)</button></div>
  <button class="next top" id="hmNext" disabled>למילה הבאה ←</button>
  <div class="hm"><svg id="hmSvg" viewBox="0 0 120 140" width="150" height="175" aria-hidden="true"></svg><div id="hmLives" class="lives"></div></div>
  <div class="clue" id="hmClue"></div>
  <div class="hword" id="hmWord" dir="ltr"></div>
  ${keyboardHTML(false)}
- <div id="hmInfo"></div>
-`;
+ <div id="hmInfo"></div></div>`;
  bindKeyboard(c,key);
  $("hmHear").onclick=()=>speak(H.w.w,true);
  $("hmHint").onclick=hint;

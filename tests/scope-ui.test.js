@@ -1,0 +1,23 @@
+const {openApp,check,done}=require("./helpers");
+(async()=>{
+ const probe=await openApp(); const names=probe.names; await probe.close();
+ const strong=names.slice(0,3), weak=names.slice(3,10), removed=names.slice(10,13);
+ const app=await openApp({strong,weak,removed}); const {page}=app;
+ const total=await page.evaluate(()=>words.length);
+ await page.click("[data-tab=quiz]");
+ const opts=await page.$$eval("#scopeSel option",o=>o.map(x=>x.textContent.trim()));
+ check("selector lists all/new/weak/strong with counts, no group yet",opts.length===4&&opts[0]===`הכל (${total})`&&opts[2]==="חלשות (7)"&&opts[3]==="חזקות (3)",JSON.stringify(opts));
+ await page.selectOption("#scopeSel","weak");
+ check("choice is saved for the game",await page.evaluate(()=>store.get("wqScope_quiz"))==="weak");
+ await page.click("[data-tab=cards]");
+ const cardOpts=await page.$$eval("#scopeSel option",o=>o.map(x=>x.textContent.trim()));
+ check("cards 'all' counts removed words and says so",cardOpts[0]===`הכל (${total+3}, מתוכן 3 שהוסרו)`,cardOpts[0]);
+ check("cards weak count equals the Words-tab weak count",cardOpts[2]==="חלשות (7)",cardOpts[2]);
+ await page.evaluate(()=>{ store.set("wqScopeShared","1"); store.set("wqScopeSharedValue","strong"); });
+ await page.click("[data-tab=quiz]");
+ check("shared: selector is replaced by a lock",!(await page.$("#scopeSel"))&&!!(await page.$(".scopelock")));
+ check("lock names the shared choice",(await page.textContent(".scopelock")).includes("חזקות (3)"));
+ await page.click("[data-help]"); check("help sheet opens",!!(await page.$(".helpsheet"))); await page.click(".helpclose");
+ check("no page errors",app.errors.length===0,app.errors.join("|"));
+ await app.close(); done();
+})();

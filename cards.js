@@ -5,7 +5,7 @@ const GAPS=[0,1,2,4,7,14,30], MAX_PASSES=3;
 const dayNum=()=>Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5);
 let dir=store.get("wqCardDir","en"), queue=[], again=[], pass=1, cur=null, shown=false, okN=0, noN=0, retried=new Set();
 
-const pool=()=>getScope("cards")==="weak"?allWords.filter(isWeak):allWords;
+const pool=()=>poolFor("cards");
 const isDue=w=>{const c=S.cards[w.w]; return !c||c.d<=dayNum()};
 function dueList(){
  const dn=dayNum();
@@ -80,6 +80,7 @@ function summary(){
  if($("cdMore")) $("cdMore").onclick=start;
 }
 function intro(){
+ if(!pool().length){ $("cdBody").innerHTML=`<div class="gwarn">אין מילים בבחירה הזו</div>`; return; }
  const n=dueCount(), total=pool().length, gone=allWords.filter(w=>hidden.has(w.w)).length;
  $("cdBody").innerHTML=n?`<p class="sub">${n} כרטיסים מחכים לך היום (מתוך ${total} מילים${gone?`, כולל ${gone} שהסרת כי למדת`:""}). כל המילים נכללות בסבב.</p>
   <button class="next top" id="cdStart">▶ התחלת סבב</button>`
@@ -88,9 +89,9 @@ function intro(){
  if($("cdAll")) $("cdAll").onclick=()=>{ begin(shuffle(pool())); };
 }
 
-HELP.cards=`<h3>🃏 כרטיסיות</h3><p>רואים מילה, מנסים להיזכר בתרגום, ואז לוחצים ״הצגת תשובה״ ומסמנים אם ידעתם. מילה שידעתם תחזור בעוד זמן ארוך יותר; מילה שלא ידעתם תחזור עוד היום.</p><p>🔁 הכפתור למעלה מחליף כיוון (אנגלית ← עברית או להפך). הכרטיסיות כוללות גם מילים שהסרתם כי למדתם.</p>`;
+HELP.cards=`<h3>🃏 כרטיסיות</h3><p>רואים מילה, מנסים להיזכר בתרגום, ואז לוחצים ״הצגת תשובה״ ומסמנים אם ידעתם. מילה שידעתם תחזור בעוד זמן ארוך יותר; מילה שלא ידעתם תחזור עוד היום.</p><p>🔁 הכפתור למעלה מחליף כיוון (אנגלית ← עברית או להפך). הכרטיסיות כוללות גם מילים שהסרתם כי למדתם.</p><p>למעלה בוחרים אילו מילים לתרגל. ״הכל״ כולל גם מילים שהסרתם.</p>`;
 games.cards={render(c){
- c.innerHTML=gameBar("cards",allWords)+`<div class="tools top"><button id="cdDir"></button></div><div id="cdBody"></div>`;
+ c.innerHTML=gameBar("cards")+`<div class="tools top"><button id="cdDir"></button></div><div id="cdBody"></div>`;
  const mark=()=>$("cdDir").textContent=dir==="en"?"🔁 אנגלית ← עברית":"🔁 עברית ← אנגלית";
  mark();
  $("cdDir").onclick=()=>{ dir=dir==="en"?"he":"en"; store.set("wqCardDir",dir); mark(); if(cur&&!$("cdBody").querySelector(".win")) card(); else intro(); };
