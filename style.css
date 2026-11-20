@@ -109,3 +109,6 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 .grp .lbl{display:block;font-size:12.5px;color:var(--muted);margin:8px 0 3px}.grp input:not([type=checkbox]),.grp select{width:100%;box-sizing:border-box;font:inherit;font-size:15px;padding:9px;border-radius:11px;border:2px solid #e3e3ee;background:#fff;color:var(--dark)}.gbrow{display:flex;gap:8px}.gbrow input{flex:0 0 90px}.gbrow button{flex:1;border:0;border-radius:11px;background:#ececf3;font:inherit;font-size:14px}
 .gbl{max-height:320px;overflow:auto}.gbpick{display:flex;gap:10px;align-items:center;padding:4px 0}.gbpick input{width:20px;height:20px;flex:none}
 .cl li.ingrp{border-inline-start:4px solid #6c5ce7}
+
+.st:empty{display:none}
+.grp .sum{margin:14px 0 10px;line-height:1.5}.grp .sum small{color:var(--muted)}.sum.warn{background:#fff4cf}.gbnote{margin-top:6px;font-size:13px;color:var(--muted)}

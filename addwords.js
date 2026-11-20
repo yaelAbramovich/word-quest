@@ -55,34 +55,26 @@ const FILTERS=["all","new","weak","strong","group"];
 let filt=store.get("wqFilter","all");
 const alpha=(a,b)=>a.w.localeCompare(b.w);
 const val=w=>{const t=wstat(w); return !t.n?2:t.pct!==null?t.pct/100:t.c/t.n};   // sort key: lower = weaker
-let builder=null;   // while the group builder is open: {name,cat,count,picked:Set}
+let builder=null;   // while the group builder is open: {name,cat,picked:Set}
 const BUILD_CATS=[["all","הכל"],["new","חדשות"],["weak","חלשות"],["strong","חזקות"]];
 const builderPool=()=>builder.cat==="all"?words:words.filter(w=>category(w)===builder.cat);
-function autoPick(){   // the weakest first for "weak", otherwise random
- const pool=builderPool();
- const list=builder.cat==="weak"?[...pool].sort((a,b)=>val(a)-val(b)):shuffle(pool);
- builder.picked=new Set(list.slice(0,builder.count).map(w=>w.w));
-}
 function builderHTML(){
- const pool=[...builderPool()].sort(alpha), n=builder.picked.size;
+ const pool=[...builderPool()].sort(alpha), n=builder.picked.size, hidden2=[...builder.picked].filter(x=>!pool.some(w=>w.w===x)).length;
  return `<div class="grp building"><h4>🎯 ${group?"עריכת הקבוצה":"קבוצה חדשה"}</h4>
  <label class="lbl">שם הקבוצה (אפשר לכתוב חופשי)</label><input id="gbName" maxlength="30" placeholder="למשל: מילים של השבוע" value="${esc(builder.name)}">
  <label class="lbl">מאיזו קטגוריה לבחור?</label><select id="gbCat">${BUILD_CATS.map(([k,t])=>`<option value="${k}"${builder.cat===k?" selected":""}>${t}</option>`).join("")}</select>
- <label class="lbl">כמה מילים? (מינימום ${GROUP_MIN})</label>
- <div class="gbrow"><input id="gbCount" type="number" inputmode="numeric" min="${GROUP_MIN}" max="${Math.max(GROUP_MIN,pool.length)}" value="${builder.count}"><button class="wide" id="gbAuto">✨ בחירה אוטומטית</button></div>
- <div class="sum">נבחרו ${n} מילים${n<GROUP_MIN?` (צריך לפחות ${GROUP_MIN})`:""}. אפשר לסמן ולבטל סימון ברשימה:</div>
+ <div class="sum${n<GROUP_MIN?" warn":""}">${n<GROUP_MIN?`⚠️ נבחרו ${n} מילים. צריך לפחות ${GROUP_MIN} מילים בקבוצה.`:`✓ נבחרו ${n} מילים.`} <small>(מינימום ${GROUP_MIN}; אפשר לסמן כמה שרוצים)</small>${hidden2?`<div class="gbnote">${hidden2} מהמילים שסומנו הן מקטגוריות אחרות ולא מוצגות כאן. בחרי ״הכל״ כדי לראות את כולן.</div>`:""}</div>
  <ul class="cl gbl">${pool.map(w=>`<li><label class="gbpick"><input type="checkbox" data-gbpick="${esc(w.w)}"${builder.picked.has(w.w)?" checked":""}><span><b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span></label></li>`).join("")}</ul>
  <div class="tools"><button class="wide" id="gbSave">💾 שמירת הקבוצה</button><button class="wide" id="gbCancel">ביטול</button></div></div>`;
 }
 function groupClick(e){
  const t=id=>e.target.closest(id);
- if(t("[data-grpnew]")){ builder={name:"קבוצה 1",cat:"weak",count:5,picked:new Set()}; autoPick(); drawCustom(); return true; }
- if(t("[data-grpedit]")){ builder={name:group.name,cat:"all",count:groupWords().length,picked:new Set(groupWords().map(w=>w.w))}; drawCustom(); return true; }
+ if(t("[data-grpnew]")){ builder={name:"קבוצה 1",cat:"all",picked:new Set()}; drawCustom(); return true; }
+ if(t("[data-grpedit]")){ builder={name:group.name,cat:"all",picked:new Set(groupWords().map(w=>w.w))}; drawCustom(); return true; }
  if(t("[data-grpend]")){
   if(confirm(`לסיים את הקבוצה "${group.name}"? ההתקדמות של המילים נשמרת.`)){ group=null; saveGroup(); if(filt==="group"){ filt="all"; store.set("wqFilter",filt); } drawCustom(); }
   return true;
  }
- if(t("#gbAuto")){ autoPick(); drawCustom(); return true; }
  if(t("#gbCancel")){ builder=null; drawCustom(); return true; }
  if(t("#gbSave")){
   const name=builder.name.trim();
@@ -96,8 +88,7 @@ function groupClick(e){
 function groupInput(e){ if(builder&&e.target.id==="gbName") builder.name=e.target.value; }
 function groupChange(e){
  if(!builder) return false;
- if(e.target.id==="gbCat"){ builder.cat=e.target.value; autoPick(); drawCustom(); return true; }
- if(e.target.id==="gbCount"){ builder.count=Math.max(GROUP_MIN,Math.min(+e.target.value||GROUP_MIN,builderPool().length)); autoPick(); drawCustom(); return true; }
+ if(e.target.id==="gbCat"){ builder.cat=e.target.value; drawCustom(); return true; }
  if(e.target.dataset.gbpick!==undefined){
   const n=e.target.dataset.gbpick; e.target.checked?builder.picked.add(n):builder.picked.delete(n); drawCustom(); return true;
  }
