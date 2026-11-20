@@ -55,6 +55,54 @@ const FILTERS=["all","new","weak","strong","group"];
 let filt=store.get("wqFilter","all");
 const alpha=(a,b)=>a.w.localeCompare(b.w);
 const val=w=>{const t=wstat(w); return !t.n?2:t.pct!==null?t.pct/100:t.c/t.n};   // sort key: lower = weaker
+let builder=null;   // while the group builder is open: {name,cat,count,picked:Set}
+const BUILD_CATS=[["all","הכל"],["new","חדשות"],["weak","חלשות"],["strong","חזקות"]];
+const builderPool=()=>builder.cat==="all"?words:words.filter(w=>category(w)===builder.cat);
+function autoPick(){   // the weakest first for "weak", otherwise random
+ const pool=builderPool();
+ const list=builder.cat==="weak"?[...pool].sort((a,b)=>val(a)-val(b)):shuffle(pool);
+ builder.picked=new Set(list.slice(0,builder.count).map(w=>w.w));
+}
+function builderHTML(){
+ const pool=[...builderPool()].sort(alpha), n=builder.picked.size;
+ return `<div class="grp building"><h4>🎯 ${group?"עריכת הקבוצה":"קבוצה חדשה"}</h4>
+ <label class="lbl">שם הקבוצה (אפשר לכתוב חופשי)</label><input id="gbName" maxlength="30" placeholder="למשל: מילים של השבוע" value="${esc(builder.name)}">
+ <label class="lbl">מאיזו קטגוריה לבחור?</label><select id="gbCat">${BUILD_CATS.map(([k,t])=>`<option value="${k}"${builder.cat===k?" selected":""}>${t}</option>`).join("")}</select>
+ <label class="lbl">כמה מילים? (מינימום ${GROUP_MIN})</label>
+ <div class="gbrow"><input id="gbCount" type="number" inputmode="numeric" min="${GROUP_MIN}" max="${Math.max(GROUP_MIN,pool.length)}" value="${builder.count}"><button class="wide" id="gbAuto">✨ בחירה אוטומטית</button></div>
+ <div class="sum">נבחרו ${n} מילים${n<GROUP_MIN?` (צריך לפחות ${GROUP_MIN})`:""}. אפשר לסמן ולבטל סימון ברשימה:</div>
+ <ul class="cl gbl">${pool.map(w=>`<li><label class="gbpick"><input type="checkbox" data-gbpick="${esc(w.w)}"${builder.picked.has(w.w)?" checked":""}><span><b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span></label></li>`).join("")}</ul>
+ <div class="tools"><button class="wide" id="gbSave">💾 שמירת הקבוצה</button><button class="wide" id="gbCancel">ביטול</button></div></div>`;
+}
+function groupClick(e){
+ const t=id=>e.target.closest(id);
+ if(t("[data-grpnew]")){ builder={name:"קבוצה 1",cat:"weak",count:5,picked:new Set()}; autoPick(); drawCustom(); return true; }
+ if(t("[data-grpedit]")){ builder={name:group.name,cat:"all",count:groupWords().length,picked:new Set(groupWords().map(w=>w.w))}; drawCustom(); return true; }
+ if(t("[data-grpend]")){
+  if(confirm(`לסיים את הקבוצה "${group.name}"? ההתקדמות של המילים נשמרת.`)){ group=null; saveGroup(); if(filt==="group"){ filt="all"; store.set("wqFilter",filt); } drawCustom(); }
+  return true;
+ }
+ if(t("#gbAuto")){ autoPick(); drawCustom(); return true; }
+ if(t("#gbCancel")){ builder=null; drawCustom(); return true; }
+ if(t("#gbSave")){
+  const name=builder.name.trim();
+  if(!name){ toast("צריך לתת שם לקבוצה"); return true; }
+  if(builder.picked.size<GROUP_MIN){ toast(`צריך לבחור לפחות ${GROUP_MIN} מילים`); return true; }
+  group={name:name.slice(0,30),words:[...builder.picked]}; saveGroup(); builder=null; drawCustom(); toast("הקבוצה נשמרה ✓");
+  return true;
+ }
+ return false;
+}
+function groupInput(e){ if(builder&&e.target.id==="gbName") builder.name=e.target.value; }
+function groupChange(e){
+ if(!builder) return false;
+ if(e.target.id==="gbCat"){ builder.cat=e.target.value; autoPick(); drawCustom(); return true; }
+ if(e.target.id==="gbCount"){ builder.count=Math.max(GROUP_MIN,Math.min(+e.target.value||GROUP_MIN,builderPool().length)); autoPick(); drawCustom(); return true; }
+ if(e.target.dataset.gbpick!==undefined){
+  const n=e.target.dataset.gbpick; e.target.checked?builder.picked.add(n):builder.picked.delete(n); drawCustom(); return true;
+ }
+ return false;
+}
 function statLine(w){
  const t=wstat(w);
  if(!t.n) return `<div class="st2"><span>חדשה — עוד לא תורגלה בתשבץ או בחידון</span></div>`;
@@ -81,7 +129,15 @@ function drawCustom(){
   :[...words].sort(alpha);
  const withPct=words.map(wstat).filter(t=>t.pct!==null);
  const avg=withPct.length?Math.round(withPct.reduce((x,t)=>x+t.pct,0)/withPct.length):null;
- const row=(w,btns,extra,n)=>`<li><span>${n?`<span class="num">${n}.</span> `:""}<b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span>${btns}${extra||""}</li>`;
+const row=(w,btns,extra,n)=>{ const g=group&&group.words.includes(w.w); return `<li${g?' class="ingrp"':""}><span>${n?`<span class="num">${n}.</span> `:""}${g?"🎯 ":""}<b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span>${btns}${extra||""}</li>`; };
+ const groupSection=()=>{
+  if(!hasGroup) return `<div class="grp empty"><button class="next" style="display:block;margin:0" data-grpnew>🎯 בניית קבוצה</button><p class="tip">אפשר לבחור כמה מילים בלבד ללמוד עכשיו, לתת להן שם, ולשחק בהן בכל המשחקים.</p></div>`;
+  const gw=groupWords().sort(alpha), strongN=gw.filter(w=>category(w)==="strong").length;
+  return `<div class="grp"><div class="grph"><b>🎯 ${esc(group.name)}</b><span>${gw.length} מילים · ${strongN} חזקות</span></div>
+  ${strongN===gw.length?`<div class="win">🎉 כל המילים בקבוצה חזקות! אפשר לסיים ולבנות קבוצה חדשה.</div>`:""}
+  <ul class="cl grpl">${gw.map(w=>row(w,"",(category(w)==="strong"?`<div class="st2"><span class="g">✓ חזקה</span></div>`:"")+statLine(w),0)).join("")}</ul>
+  <div class="tools"><button data-grpedit>✏️ עריכת הקבוצה</button><button data-grpend>סיום קבוצה</button></div></div>`;
+ };
  const copyIcon=`<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>`;
  const exLine=w=>{
   const bits=[];
@@ -101,7 +157,8 @@ function drawCustom(){
  const sharedBox=`<div class="sharedbox"><label class="chk"><input type="checkbox" id="shChk"${shared?" checked":""}> השתמש בבחירה אחת בכל המשחקים</label>
   <select id="shSel"${shared?"":" disabled"} aria-label="הבחירה המשותפת">${SCOPES.filter(s=>s!=="group"||hasGroup).map(s=>`<option value="${s}"${s===shCur?" selected":""}>${scopeLabel(s,"words")}</option>`).join("")}</select>
   <p class="tip">${shared?"כל המשחקים משתמשים בבחירה הזו, והבחירה בתוך כל משחק נעולה.":"כבוי: בכל משחק אפשר לבחור בנפרד אילו מילים לשחק."}</p></div>`;
- $("awList").innerHTML=`<h4>המילים במשחקים (${words.length})</h4>
+ $("awList").innerHTML=`${builder?builderHTML():groupSection()}
+ <h4>המילים במשחקים (${words.length})</h4>
  <p class="sub">חדשה = עוד לא תורגלה. חלשה = תורגלה ועדיין אין אחוז, או שהאחוז מתחת ל-80%. חזקה = יש אחוז (אחרי ${WINDOW} ניסיונות) ו-80% ומעלה. האחוז נמדד רק בתשבץ ובחידון, ומופיע אחרי ${WINDOW} ניסיונות. הוא מבוסס על ${WINDOW} הניסיונות האחרונים. 100% = כל הניסיונות נכונים, עם הצלחות ב-${DAYS_FOR_100} ימים שונים. בפחות ימים — המקסימום 90%. רמז או "גלי מילה" נחשבים כאילו לא ידעת. מילים חדשות וחלשות יופיעו יותר. בנוסף, מתחת לכל מילה מוצגת הספירה הכוללת מאז ומעולם: הצלחות, טעויות וכמה פעמים נעזרת ברמז.</p>
  ${missing?`<button class="next" style="display:block;margin:8px 0" data-fillall>🔍 חיפוש משפטים ל-${missing} מילים שחסר להן</button>`:""}
  <div class="sum">${cnt.new} חדשות · ${cnt.weak} חלשות · ${cnt.strong} חזקות${avg===null?"":` · ממוצע ${avg}%`}${rec.length?` · 💡 ${rec.length} מומלצות להסרה`:""}</div>
@@ -199,6 +256,7 @@ games.addwords={render(c){
  $("awRows").addEventListener("input",e=>{const i=e.target.dataset.i; if(i!=null) rows[+i][e.target.dataset.f]=e.target.value});
  $("awRows").addEventListener("click",e=>{const d=e.target.closest("[data-del]"); if(d){rows.splice(+d.dataset.del,1); drawRows()}});
  $("awList").addEventListener("click",e=>{
+  if(groupClick(e)) return;
   const xt=e.target.closest("[data-extoggle]");
   if(xt){ const k=xt.dataset.extoggle; openEx.has(k)?openEx.delete(k):openEx.add(k); drawCustom(); return; }
   const mt=e.target.closest("[data-mtoggle]");
@@ -241,9 +299,11 @@ games.addwords={render(c){
   hidden.delete(d.dataset.rm); saveHidden(); saveCustom(); applyHidden(); renderStats(); drawCustom();
  });
  $("awList").addEventListener("change",e=>{
+  if(groupChange(e)) return;
   if(e.target.id==="shChk"){ store.set("wqScopeShared",e.target.checked?"1":"0"); drawCustom(); return; }
   if(e.target.id==="shSel"){ store.set("wqScopeSharedValue",e.target.value); drawCustom(); return; }
  });
+ $("awList").addEventListener("input",groupInput);
  document.addEventListener("sentencechanged",()=>{ if($("awList")) drawCustom(); },{once:false});
  drawRows(); drawCustom();
 }};

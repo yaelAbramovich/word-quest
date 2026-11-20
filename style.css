@@ -103,3 +103,9 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 .gwarn{background:#fff4cf;border-radius:13px;padding:12px;margin:0 0 10px;font-size:14px;line-height:1.5}.gnote{font-size:13px;color:var(--muted);margin:6px 0;line-height:1.5}
 [hidden]{display:none!important}
 .sharedbox{background:#f7f7fb;border-radius:14px;padding:10px 12px;margin:8px 0}.sharedbox .chk{display:flex;gap:8px;align-items:center;font-size:14.5px;font-weight:600}.sharedbox select{width:100%;font:inherit;font-size:15px;padding:9px;border-radius:11px;border:2px solid #e3e3ee;background:#fff;color:var(--dark);margin:8px 0 2px}.sharedbox select:disabled{opacity:.5}.sharedbox .tip{margin:4px 0 0}
+
+/* my group */
+.grp{border:2px solid #b9b0ff;border-radius:18px;padding:12px;margin:0 0 14px;background:#faf9ff}.grp.empty{border-style:dashed;background:transparent}.grph{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}.grph b{font-size:16px}.grph span{color:var(--muted);font-size:13px}
+.grp .lbl{display:block;font-size:12.5px;color:var(--muted);margin:8px 0 3px}.grp input:not([type=checkbox]),.grp select{width:100%;box-sizing:border-box;font:inherit;font-size:15px;padding:9px;border-radius:11px;border:2px solid #e3e3ee;background:#fff;color:var(--dark)}.gbrow{display:flex;gap:8px}.gbrow input{flex:0 0 90px}.gbrow button{flex:1;border:0;border-radius:11px;background:#ececf3;font:inherit;font-size:14px}
+.gbl{max-height:320px;overflow:auto}.gbpick{display:flex;gap:10px;align-items:center;padding:4px 0}.gbpick input{width:20px;height:20px;flex:none}
+.cl li.ingrp{border-inline-start:4px solid #6c5ce7}
