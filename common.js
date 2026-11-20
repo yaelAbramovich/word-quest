@@ -122,7 +122,6 @@ function recentWords(size){
 // ---- compact game bar: scope switch + a small "?" that opens the instructions (no space taken from the game) ----
 const HELP={};
 const isWeak=w=>category(w)!=="strong";   // temporary: deleted when the Words tab moves to category()
-function pickWeighted(n,filter,avoid){ return pickSet(currentTab,n,filter,avoid); }   // temporary shim: removed when the last game moves to pickSet
 const escHtml=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function scopeLabel(s,game){
  const n=poolOf(s,game).length;

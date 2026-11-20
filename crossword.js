@@ -1,5 +1,7 @@
 (function(){
 let P; // current puzzle
+const CAP=9;
+const fitWords=()=>poolFor("crossword").filter(w=>{const n=letters(w).length;return n>=3&&n<=11;});
 
 function build(ws){
  const N=31, g=Array.from({length:N},()=>Array(N).fill(null)), ent=[];
@@ -45,26 +47,33 @@ function build(ws){
 }
 
 function generate(){
+ const pool=poolFor("crossword"), fit=fitWords(), sub=fit.length>CAP;
  let best=null;
- for(let t=0;t<60;t++){
-  const ent=build(pickWeighted(9,w=>letters(w).length>=3&&letters(w).length<=11));
-  if(ent.length<6) continue;
+ for(let t=0;t<(sub?60:250);t++){            // a small pool is retried many times to place every word
+  const ws=sub?pickSet("crossword",CAP,w=>fit.includes(w)):fit;
+  const ent=build(ws);
+  if(!ent.length||(sub&&ent.length<6)) continue;
   const r0=Math.min(...ent.map(e=>e.r)), c0=Math.min(...ent.map(e=>e.c));
   const r1=Math.max(...ent.map(e=>e.r+(e.d?e.L.length-1:0))), c1=Math.max(...ent.map(e=>e.c+(e.d?0:e.L.length-1)));
   const H=r1-r0+1, W=c1-c0+1;
   if(W>11||H>11) continue;
   const score=ent.length*10-W*H/4;
-  if(!best||score>best.score) best={ent,r0,c0,W,H,score};
-  if(ent.length>=8) break;
+  if(!best||score>best.score) best={ent,r0,c0,W,H,score,ws};
+  if(ent.length>=(sub?8:ws.length)) break;
  }
  if(!best){ // fallback: should be very rare
-  const ent=build(pickWeighted(5,w=>letters(w).length>=3&&letters(w).length<=11));
+  const ws=sub?pickSet("crossword",5,w=>fit.includes(w)):fit;
+  const ent=build(ws);
   const r0=Math.min(...ent.map(e=>e.r)), c0=Math.min(...ent.map(e=>e.c));
-  best={ent,r0,c0,
+  best={ent,r0,c0,ws,
    W:Math.max(...ent.map(e=>e.c+(e.d?0:e.L.length)))-c0,
    H:Math.max(...ent.map(e=>e.r+(e.d?e.L.length:1)))-r0};
  }
  const {ent,r0,c0,W,H}=best;
+ // words that did not make it into the grid (or do not fit a crossword) are listed, never replaced by other words
+ const placed=new Set(ent.map(e=>e.w));
+ const left=sub?[]:best.ws.filter(w=>!placed.has(w)).concat(pool.filter(w=>!fit.includes(w)));
+ const note={shown:sub?placed.size:null,total:pool.length,left};
  const cells=Array.from({length:H},()=>Array(W).fill(null));
  const entries=ent.map(e=>({w:e.w,L:e.L,d:e.d,r:e.r-r0,c:e.c-c0,solved:false,hinted:false,missed:false,cells:[]}));
  entries.forEach((e,i)=>{
@@ -80,7 +89,7 @@ function generate(){
   if(starts.length){ n++; starts.forEach(e=>e.num=n); cells[r][c].num=n; }
  }
  const first=entries.findIndex(e=>e.d===0);
- return {W,H,cells,entries,ei:first<0?0:first,ci:0,bad:new Set(),won:false};
+ return {W,H,cells,entries,ei:first<0?0:first,ci:0,bad:new Set(),won:false,note};
 }
 
 const cur=()=>P.entries[P.ei];
@@ -100,8 +109,12 @@ function draw(){
  $("cwGrid").style.width=`max(100%,${P.W*28}px)`;
  $("cwGrid").innerHTML=h;
  $("cwClue").innerHTML=`<b>${e.num} ${e.d?"אנכי ⬇":"אופקי ➡"}</b> · ${e.w.he} <small>(${e.L.length} אותיות)</small>`;
- const list=d=>P.entries.map((x,i)=>x.d===d?`<li data-e="${i}" class="${x.solved?"done":""}${i===P.ei?" cur":""}">${x.num}. ${x.solved?`<b dir="ltr">${x.w.w}</b> — `:""}${x.w.he}</li>`:"").join("");
+ const list=d=>P.entries.map((x,i)=>x.d===d?`<li data-e="${i}" data-en="${x.w.w}" class="${x.solved?"done":""}${i===P.ei?" cur":""}">${x.num}. ${x.solved?`<b dir="ltr">${x.w.w}</b> — `:""}${x.w.he}</li>`:"").join("");
  $("cwLists").innerHTML=`<h4>➡ אופקי</h4><ul>${list(0)}</ul><h4>⬇ אנכי</h4><ul>${list(1)}</ul>`;
+ const n=P.note, parts=[];
+ if(n.shown!==null) parts.push(`מוצגות ${n.shown} מתוך ${n.total} מילים`);
+ if(n.left.length) parts.push(`לא נכנסו הפעם: ${n.left.map(w=>`<b dir="ltr">${w.w}</b>`).join(", ")}`);
+ $("cwNote").innerHTML=parts.join(" · ");
 }
 
 function select(ei,ci){
@@ -110,6 +123,7 @@ function select(ei,ci){
  P.ci=ci; draw();
 }
 function onCell(r,c){
+ if(!P) return;
  const cell=P.cells[r][c], [a,d]=cell.ents;
  const [ar,ac]=activeCell();
  let ei;
@@ -157,6 +171,7 @@ function solve(e,earned){
 }
 
 function key(k){
+ if(!P) return;
  if(P.won) return;
  const e=cur(), [r,c]=activeCell(), cell=P.cells[r][c];
  if(k==="⌫"){
@@ -174,6 +189,7 @@ function key(k){
 }
 
 function hint(){
+ if(!P) return;
  if(P.won) return;
  if(cur().solved){ const n=P.entries.findIndex(x=>!x.solved); if(n<0) return; select(n); }
  const e=cur();
@@ -193,25 +209,29 @@ function hint(){
  }
 }
 function reveal(){
+ if(!P) return;
  if(P.won||cur().solved) return;
  const e=cur(); bad(e.w); record(e.w,"help"); solve(e,false);
 }
 
 function newPuzzle(){
+ const n=fitWords().length;
+ if(!gateGame(n>=4?"":`בתשבץ צריך לפחות 4 מילים באורך 3–11 אותיות (בבחירה הזו יש ${n}). כדאי 5 ומעלה, כדי שיהיו יותר חיבורים בין המילים.`)){ P=P0=null; return; }
  P=P0=generate();
  $("cwInfo").innerHTML="";
  draw();
 }
 
-HELP.crossword=`<h3>🧩 תשבץ</h3><p>בוחרים משבצת ומקלידים באנגלית. לחיצה נוספת על אותה משבצת מחליפה בין אופקי לאנכי. כשמילה נכונה — שומעים אותה ורואים את התרגום (״פרטים״ מציג הסבר ומשפט).</p><p>💡 רמז חושף אות. 👁 גלי מילה חושף את כל המילה. רשימת ההגדרות נמצאת מתחת למקלדת.</p>`;
+HELP.crossword=`<h3>🧩 תשבץ</h3><p>בוחרים משבצת ומקלידים באנגלית. לחיצה נוספת על אותה משבצת מחליפה בין אופקי לאנכי. כשמילה נכונה — שומעים אותה ורואים את התרגום (״פרטים״ מציג הסבר ומשפט).</p><p>💡 רמז חושף אות. 👁 גלי מילה חושף את כל המילה. רשימת ההגדרות נמצאת מתחת למקלדת.</p><p>בתשבץ צריך לפחות 4 מילים (באורך 3–11 אותיות); כדאי 5 ומעלה. למעלה בוחרים אילו מילים לשחק. מילים שלא נכנסו ללוח מופיעות מתחתיו.</p>`;
 games.crossword={render(c){
- c.innerHTML=gameBar("crossword")+`
+ c.innerHTML=gameBar("crossword")+`<div id="gBody">
  <div class="tools top"><button id="cwHint">💡 רמז</button><button id="cwReveal">👁 גלי מילה</button><button id="cwNew">🔄 תשבץ חדש</button></div>
  <div class="cwwrap"><div class="cw" id="cwGrid" dir="ltr"></div></div>
  <div class="clue" id="cwClue"></div>
  <div id="cwInfo"></div>
+ <div class="gnote" id="cwNote"></div>
  ${keyboardHTML(true)}
- <div class="lists" id="cwLists"></div>`;
+ <div class="lists" id="cwLists"></div></div>`;
  bindKeyboard(c,key);
  $("cwGrid").addEventListener("click",ev=>{
   const x=ev.target.closest(".cx[data-r]"); if(x) onCell(+x.dataset.r,+x.dataset.c);
