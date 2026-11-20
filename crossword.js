@@ -136,7 +136,7 @@ function resultHTML(w,mark){
  return `<div class="cwres"><button class="sound sm" data-sw="${w.w}" aria-label="השמעה">🔊</button>
   <span class="cwtxt">${mark?mark+" ":""}<b class="en" dir="ltr">${w.w}</b> — ${w.he}</span>
   <button class="cwmore" aria-expanded="false">פרטים ▾</button></div>
-  <div class="cwdet" hidden>${w.he}${w.m?`<div class="mean">${w.m}</div>`:""}${w.ex?`<div class="example">${w.ex}</div>`:""}
+  <div class="cwdet" hidden>${w.he}${w.m?`<div class="mean">${w.m}</div>`:""}${w.ex?exBlock(w):""}
   <button class="known" data-known="${w.w}">✓ מכירה טוב — להסיר מהמשחקים</button></div>`;
 }
 function solve(e,earned){

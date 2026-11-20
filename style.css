@@ -92,3 +92,7 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 .win.cwwin{margin:0 0 8px;padding:8px 12px;font-size:14.5px}
 
 .wr textarea.ex{flex-basis:100%;min-width:0;border:2px solid #e3e3ee;border-radius:11px;padding:10px;font:inherit;font-size:16px;background:#fff;color:var(--dark);resize:vertical;box-sizing:border-box;direction:ltr;text-align:left}
+
+/* edit-sentence button next to every sentence */
+.exwrap{display:flex;gap:6px;align-items:flex-start;margin-top:6px}.exwrap .example{flex:1;min-width:0;margin:0}.exedit{flex:none;border:0;background:#eeebff;border-radius:10px;width:34px;height:34px;font-size:15px;padding:0}.feedback .exwrap{margin-top:10px}
+.helpsheet .editbox{background:transparent;padding:0}.helpsheet .editbox textarea{margin:6px 0}

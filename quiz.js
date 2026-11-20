@@ -1,11 +1,18 @@
 (function(){
 let mode=store.get("wqQuizMode","meaning"), current;
-const recent=recentWords(3);   // the same word never comes back within the next 3 questions
+const recent=recentWords(3);
+const recentOpts=[];   // wrong options of the last rounds: they are not used again right away   // the same word never comes back within the next 3 questions
 
 const STEMS={strike:"struck",tumble:"tumbled","doze off":"dozed off"};
 const blankRe=w=>{ const x=(STEMS[w.w]||w.w).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); return new RegExp(w.custom?"\\b\\w*"+x+"\\w*":x,'i'); };
 function options(prop){
- return shuffle([current,...shuffle(words.filter(x=>x!==current)).slice(0,3)]).map(x=>x[prop]);
+ const others=words.filter(x=>x!==current);
+ const used=new Set(recentOpts.flat());
+ // wrong options come from words that were not options in the last 3 rounds (if there are not enough, the rest fill in)
+ const fresh=shuffle(others.filter(x=>!used.has(x.w))), old=shuffle(others.filter(x=>used.has(x.w)));
+ const wrong=[...fresh,...old].slice(0,3);
+ recentOpts.push(wrong.map(x=>x.w)); if(recentOpts.length>3) recentOpts.shift();
+ return shuffle([current,...wrong]).map(x=>x[prop]);
 }
 function newRound(){
  current=pickWeighted(1,mode==="context"?(w=>w.exs.some(x=>blankRe(w).test(x))):null,recent.list)[0];
@@ -17,7 +24,7 @@ function newRound(){
   correct=current.he; answers=options("he");
  } else if(mode==="context"){
   const blank=current.ex.replace(blankRe(current),"_____");
-  prompt=`איזו מילה משלימה בצורה הטובה ביותר את המשפט?<div class="example">"${blank}"</div>`;
+  prompt=`איזו מילה משלימה בצורה הטובה ביותר את המשפט?${exBlock(current,{text:`"${blank}"`,blank:true})}`;
   correct=current.w; answers=options("w"); showWord=false;
  } else if(mode==="reverse"){
   prompt=`איזו מילה באנגלית מתאימה להסבר הבא?<br><br><b>${current.m||current.he}</b>`;
@@ -50,10 +57,10 @@ function answer(button,correct){
  record(current,ok?"ok":"miss");
  if(ok){
   good(current);
-  fb.innerHTML=`<b>✓ יפה!</b><br><b dir="ltr">${current.w}</b> = ${current.he}${current.m?`<br>${current.m}`:""}${current.ex?`<br><br><span class="example">${current.ex}</span>`:""}`;
+  fb.innerHTML=`<b>✓ יפה!</b><br><b dir="ltr">${current.w}</b> = ${current.he}${current.m?`<br>${current.m}`:""}${current.ex?exBlock(current):""}`;
  } else {
   bad(current);
-  fb.innerHTML=`<b>לא נורא — זו בדיוק הסיבה שאנחנו מתרגלים.</b><br><br><b dir="ltr">${current.w}</b> = ${current.he}${current.m?`<br>${current.m}`:""}${current.ex?`<br><br><span class="example">${current.ex}</span>`:""}`;
+  fb.innerHTML=`<b>לא נורא — זו בדיוק הסיבה שאנחנו מתרגלים.</b><br><br><b dir="ltr">${current.w}</b> = ${current.he}${current.m?`<br>${current.m}`:""}${current.ex?exBlock(current):""}`;
  }
  say([current.w,current.ex]);
  $("next").disabled=false;
@@ -61,6 +68,11 @@ function answer(button,correct){
 
 HELP.quiz=`<h3>🧠 חידון</h3><p>בוחרים סוג חידון ועונים על השאלה. אחרי כל תשובה רואים את התרגום והמשפט, ואפשר לעבור לאתגר הבא.</p>
 <p><b>משמעות</b> — מה פירוש המילה. <b>הקשר</b> — איזו מילה משלימה את המשפט. <b>שליפה</b> — איזו מילה באנגלית מתאימה להסבר. <b>האזנה</b> — שומעים מילה ובוחרים את המשמעות.</p>`;
+// the sentence was edited while a "context" question is open: show the new one with the word hidden again
+document.addEventListener("sentenceedited",()=>{
+ const el=document.querySelector("#qgame [data-blank]");
+ if(el&&current&&mode==="context") el.textContent=`"${current.ex.replace(blankRe(current),"_____")}"`;
+});
 games.quiz={render(c){
  c.innerHTML=gameBar("quiz")+`<nav class="modes">
   <button class="mode" data-mode="meaning">🧠 משמעות</button>

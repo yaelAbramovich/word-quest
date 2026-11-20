@@ -183,6 +183,8 @@ function rotateSentence(w,ok){
 }
 function speakWithSentence(w,notify){ rotateSentence(w); say([w.w,w.ex],notify); }
 document.addEventListener("click",e=>{
+ const xe=e.target.closest("[data-exedit]");
+ if(xe){ const w=allWords.find(x=>x.w===xe.dataset.exedit); if(w&&w.ex) editSentence(w); return; }
  const sc=e.target.closest("[data-scope]");
  if(sc){ store.set("wqScope_"+currentTab,sc.dataset.scope); showTab(currentTab); return; }
  const hp=e.target.closest("[data-help]");
@@ -196,7 +198,7 @@ document.addEventListener("click",e=>{
   anotherSentence(w).then(x=>{
    an.disabled=false; an.textContent="➕ עוד משפט";
    const ex=an.closest(".wcard")?.querySelector(".example");
-   if(x&&ex){ ex.textContent=x; ex.style.display=""; say([w.w,w.ex]); }
+   if(x&&ex){ ex.textContent=x; const wr=ex.closest(".exwrap"); if(wr) wr.style.display=""; say([w.w,w.ex]); }
   });
   return;
  }
@@ -207,6 +209,32 @@ document.addEventListener("click",e=>{
  const b=e.target.closest("[data-say]"); if(b) speak(b.dataset.say,true);
 });
 
+// ---- edit the sentence you are looking at, right where you see it (a small ✏️ next to every sentence) ----
+// opts.text: what to display instead of the sentence (the quiz hides the word); opts.blank: this display is not overwritten on save
+function exBlock(w,opts){
+ const o=opts||{};
+ return `<div class="exwrap"${w.ex?"":' style="display:none"'}><div class="example" data-exfor="${w.w}"${o.blank?" data-blank":""}>${o.text!==undefined?o.text:w.ex}</div><button class="exedit" data-exedit="${w.w}" aria-label="עריכת המשפט" title="עריכת המשפט">✏️</button></div>`;
+}
+function editSentence(w){
+ document.querySelectorAll(".helpov").forEach(x=>x.remove());
+ const d=document.createElement("div"); d.className="helpov";
+ d.innerHTML=`<div class="helpsheet" role="dialog" aria-modal="true"><h3>✏️ עריכת המשפט</h3><div class="editbox">
+  <b dir="ltr">${w.w}</b><textarea id="exEdit" dir="ltr" rows="4" autocapitalize="none"></textarea>
+  <div class="tools"><button class="wide" id="exSave">💾 שמירה</button><button class="wide" id="exCancel">ביטול</button></div></div></div>`;
+ document.body.appendChild(d);
+ const ta=d.querySelector("#exEdit"); ta.value=w.ex; ta.focus();
+ d.onclick=e=>{ if(e.target===d||e.target.closest("#exCancel")) d.remove(); };
+ d.querySelector("#exSave").onclick=()=>{
+  const t=ta.value.replace(/\s+/g," ").trim();
+  if(!t){ toast("המשפט לא יכול להיות ריק"); return; }
+  const old=w.ex; w.ex=t;
+  setSentences(w,w.exs.map(x=>x===old?t:x));
+  document.querySelectorAll("[data-exfor]").forEach(el=>{ if(el.dataset.exfor===w.w&&!("blank" in el.dataset)) el.textContent=t; });
+  document.dispatchEvent(new CustomEvent("sentenceedited",{detail:w}));
+  d.remove(); toast("המשפט נשמר ✓");
+ };
+}
+
 // the card shown after a word is used: sound button + translation + meaning + example
 function wordCard(w,title,noKnown){
  return `<div class="wcard">
@@ -214,7 +242,7 @@ function wordCard(w,title,noKnown){
   <div>${title?`<div class="wtitle">${title}</div>`:""}
    <b class="en" dir="ltr">${w.w}</b> — ${w.he}
    ${noKnown?"":`<button class="known" data-known="${w.w}">✓ מכירה טוב — להסיר מהמשחקים</button>`}
-   ${w.m?`<div class="mean">${w.m}</div>`:""}${w.ex||w.custom?`<div class="example"${w.ex?"":' style="display:none"'}>${w.ex}</div>`:""}
+   ${w.m?`<div class="mean">${w.m}</div>`:""}${w.ex||w.custom?exBlock(w):""}
    ${w.custom?`<button class="known" data-another="${w.w}">➕ עוד משפט</button>`:""}</div></div>`;
 }
 
@@ -290,6 +318,7 @@ function bindKeyboard(root,fn){
 }
 document.addEventListener("keydown",e=>{
  if(!S.keyHandler||e.metaKey||e.ctrlKey||e.altKey) return;
+ if(e.target.closest&&e.target.closest("input,textarea,select")) return;   // typing in the sentence editor
  if(/^[a-z]$/i.test(e.key)) S.keyHandler(e.key.toUpperCase());
  else if(e.key==="Backspace") S.keyHandler("⌫");
 });

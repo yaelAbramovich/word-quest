@@ -52,7 +52,7 @@ function reveal(){
  rotateSentence(w);
  $("cdBack").hidden=false;
  $("cdBack").innerHTML=(dir==="en"?`<div class="ans">${w.he}</div>`:`<div class="ans" dir="ltr">${w.w}</div>`)
-  +(w.m?`<div class="mean">${w.m}</div>`:"")+(w.ex?`<div class="example">${w.ex}</div>`:"")
+  +(w.m?`<div class="mean">${w.m}</div>`:"")+(w.ex?exBlock(w):"")
   +`<button class="sound sm" data-sw="${w.w}" aria-label="השמעה">🔊</button>`;
  $("cdShow").hidden=true; $("cdAns").hidden=false;
  say(dir==="en"?[w.ex]:[w.w,w.ex]);
