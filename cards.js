@@ -1,28 +1,16 @@
 (function(){
-// Flashcards over ALL words, including the ones you removed as "known", so they are not forgotten.
-// Spaced repetition: a correct answer moves the card to a longer interval, a wrong one brings it back today.
+// Flashcards: a round is EVERY word of the chosen selection (also removed words when the selection is "הכל").
+// A "✗ לא ידעתי" card comes back later in the same round; its day/box are still stored (S.cards) and mark the word as "missed".
 const GAPS=[0,1,2,4,7,14,30], MAX_PASSES=3;
 const dayNum=()=>Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5);
 let dir=store.get("wqCardDir","en"), queue=[], again=[], pass=1, cur=null, shown=false, okN=0, noN=0, retried=new Set();
 
 const pool=()=>poolFor("cards");
-const isDue=w=>{const c=S.cards[w.w]; return !c||c.d<=dayNum()};
-function dueList(){
- const dn=dayNum();
- const seen=pool().filter(w=>S.cards[w.w]&&S.cards[w.w].d<=dn).sort((a,b)=>S.cards[a.w].d-S.cards[b.w].d);
- return [...seen,...shuffle(pool().filter(w=>!S.cards[w.w]))];
-}
-function dueCount(all){ return (all?allWords:pool()).filter(isDue).length; }
-window.updateCardsBadge=()=>{
- const b=document.querySelector('.tabs [data-tab="cards"]'); if(!b) return;
- const n=dueCount(true); let i=b.querySelector(".bdg");
- if(!n){ i&&i.remove(); return; }
- if(!i){ i=document.createElement("i"); i.className="bdg"; b.appendChild(i); }
- i.textContent=n;
-};
 
-function start(){
- begin(dueList());
+function start(){ begin(shuffle(pool())); }
+// keeps the "❌ לא ידעתי (n)" option up to date while you answer
+function refreshMissedLabel(){
+ const o=document.querySelector('#scopeSel option[value="missed"]'); if(o) o.textContent=scopeLabel("missed","cards");
 }
 function begin(list){ queue=list; again=[]; pass=1; okN=noN=0; retried=new Set(); next(); }
 // cards you missed are not shown again right away: they come back in another round after all the other cards
@@ -67,29 +55,26 @@ function grade(ok){
   c.b=Math.max(0,c.b-2); c.d=dn; noN++;
   retried.add(w.w); again.push(w);
  }
- c.l=dn; S.cards[w.w]=c; save(); updateCardsBadge();
+ c.l=dn; S.cards[w.w]=c; save(); refreshMissedLabel();
  next();
 }
 function summary(){
- const left=dueCount();
- const later=allWords.map(w=>S.cards[w.w]).filter(c=>c&&c.d>dayNum()).map(c=>c.d);
- const nd=later.length?Math.min(...later)-dayNum():0;
+ const missedSel=getScope("cards")==="missed", left=missedSel?pool().length:0;
  $("cdBody").innerHTML=`<div class="win">🎉 סיימת סבב! ✓ ${okN} ידעת · ✗ ${noN} לא ידעת</div>
- <p class="sub">${left?`נשארו עוד ${left} כרטיסים לתרגול היום.`:`אין עוד כרטיסים להיום. ${nd?`הכרטיסים הבאים יחכו לך בעוד ${nd===1?"יום":nd+" ימים"}.`:""} מומלץ לחזור פעם ביום.`}</p>
- ${left?`<button class="next top" id="cdMore">לסבב הבא ←</button>`:""}`;
- if($("cdMore")) $("cdMore").onclick=start;
+ ${missedSel?`<p class="sub">${left?`נשארו עוד ${left} כרטיסים ב״לא ידעתי״.`:"אין יותר כרטיסים ב״לא ידעתי״ 🎉"}</p>`:""}
+ <button class="next top" id="cdMore">▶ סבב נוסף</button>`;
+ $("cdMore").onclick=()=>pool().length?start():intro();
 }
 function intro(){
- if(!pool().length){ $("cdBody").innerHTML=`<div class="gwarn">אין מילים בבחירה הזו</div>`; return; }
- const n=dueCount(), total=pool().length, gone=allWords.filter(w=>hidden.has(w.w)).length;
- $("cdBody").innerHTML=n?`<p class="sub">${n} כרטיסים מחכים לך היום (מתוך ${total} מילים${gone?`, כולל ${gone} שהסרת כי למדת`:""}). כל המילים נכללות בסבב.</p>
-  <button class="next top" id="cdStart">▶ התחלת סבב</button>`
-  :`<div class="win">✓ סיימת הכל להיום!</div><p class="sub">הכרטיסים הבאים יחכו לך בהמשך. אפשר לתרגל שוב כבר עכשיו:</p><button class="next top" id="cdAll">▶ סבב נוסף על כל המילים</button>`;
- if($("cdStart")) $("cdStart").onclick=start;
- if($("cdAll")) $("cdAll").onclick=()=>{ begin(shuffle(pool())); };
+ const list=pool();
+ if(!list.length){ $("cdBody").innerHTML=`<div class="gwarn">${getScope("cards")==="missed"?"אין כרטיסים שסימנת ״לא ידעתי״ 🎉":"אין מילים בבחירה הזו"}</div>`; return; }
+ const gone=list.filter(w=>hidden.has(w.w)).length;
+ $("cdBody").innerHTML=`<p class="sub">${list.length} כרטיסים בסבב${gone?` (כולל ${gone} מילים שהסרת כי למדת)`:""}.</p>
+  <button class="next top" id="cdStart">▶ התחלת סבב</button>`;
+ $("cdStart").onclick=start;
 }
 
-HELP.cards=`<h3>🃏 כרטיסיות</h3><p>רואים מילה, מנסים להיזכר בתרגום, ואז לוחצים ״הצגת תשובה״ ומסמנים אם ידעתם. מילה שידעתם תחזור בעוד זמן ארוך יותר; מילה שלא ידעתם תחזור עוד היום.</p><p>🔁 הכפתור למעלה מחליף כיוון (אנגלית ← עברית או להפך). הכרטיסיות כוללות גם מילים שהסרתם כי למדתם.</p><p>למעלה בוחרים אילו מילים לתרגל. ״הכל״ כולל גם מילים שהסרתם.</p>`;
+HELP.cards=`<h3>🃏 כרטיסיות</h3><p>רואים מילה, מנסים להיזכר בתרגום, ואז לוחצים ״הצגת תשובה״ ומסמנים אם ידעתם. מילה שלא ידעתם תחזור בהמשך הסבב.</p><p>🔁 הכפתור למעלה מחליף כיוון (אנגלית ← עברית או להפך).</p><p>למעלה בוחרים אילו מילים לתרגל: <b>הכל</b> (גם מילים שהסרתם), <b>לא ידעתי</b> (מילים שבפעם האחרונה סימנתם ״לא ידעתי״ — הן יוצאות מהרשימה כשתסמנו ״ידעתי״), <b>חדשות</b>, <b>חלשות</b>, <b>חזקות</b> והקבוצה שלי.</p>`;
 games.cards={render(c){
  c.innerHTML=gameBar("cards")+`<div class="tools top"><button id="cdDir"></button></div><div id="cdBody"></div>`;
  const mark=()=>$("cdDir").textContent=dir==="en"?"🔁 אנגלית ← עברית":"🔁 עברית ← אנגלית";
@@ -97,5 +82,4 @@ games.cards={render(c){
  $("cdDir").onclick=()=>{ dir=dir==="en"?"he":"en"; store.set("wqCardDir",dir); mark(); if(cur&&!$("cdBody").querySelector(".win")) card(); else intro(); };
  cur=null; intro();
 }};
-window.addEventListener("load",updateCardsBadge);
 })();

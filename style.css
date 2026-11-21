@@ -68,7 +68,6 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 
 /* flashcards, edit box, tab badge */
 .tabs{grid-template-columns:repeat(6,1fr);gap:4px}.tabs button{position:relative;padding:8px 0}.tabs button span{font-size:10px}
-.bdg{position:absolute;top:-4px;inset-inline-start:-3px;min-width:18px;height:18px;border-radius:9px;background:#e8505b;color:#fff;font:700 11px/18px system-ui;font-style:normal;text-align:center;padding:0 4px}
 .cdleft{text-align:center;color:var(--muted);font-size:13px;margin-bottom:8px}
 .cdcard{background:#f7f7fb;border-radius:20px;padding:22px 16px;text-align:center;margin-bottom:12px;min-height:150px}
 .cdcard .word{margin:6px 0 4px;overflow-wrap:anywhere}.cdcard .word.he{direction:rtl;font-size:28px}
