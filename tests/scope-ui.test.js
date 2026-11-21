@@ -12,7 +12,7 @@ const {openApp,check,done}=require("./helpers");
  await page.click("[data-tab=cards]");
  const cardOpts=await page.$$eval("#scopeSel option",o=>o.map(x=>x.textContent.trim()));
  check("cards 'all' counts removed words and says so",cardOpts[0]===`הכל (${total+3}, מתוכן 3 שהוסרו)`,cardOpts[0]);
- check("cards weak count equals the Words-tab weak count",cardOpts[2]==="חלשות (7)",cardOpts[2]);
+ check("cards weak count equals the Words-tab weak count",cardOpts[3]==="חלשות (7)",cardOpts[3]);
  await page.evaluate(()=>{ store.set("wqScopeShared","1"); store.set("wqScopeSharedValue","strong"); });
  await page.click("[data-tab=quiz]");
  check("shared: selector is replaced by a lock",!(await page.$("#scopeSel"))&&!!(await page.$(".scopelock")));

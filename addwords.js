@@ -220,9 +220,9 @@ const row=(w,btns,extra,n)=>{ const g=group&&group.words.includes(w.w); return `
  const missing=customWords().filter(w=>!w.ex&&!hidden.has(w.w)).length;
  const fb=(k,t,n)=>`<button data-filter="${k}" class="${filt===k?"on":""}">${t} (${n})</button>`;
  const sv0=store.get("wqScopeSharedValue","all"), shared=isShared();
- const shCur=!SCOPES.includes(sv0)||(sv0==="group"&&!hasGroup)?"all":sv0;
+ const shCur=!SCOPES.includes(sv0)||sv0==="missed"||(sv0==="group"&&!hasGroup)?"all":sv0;
  const sharedBox=`<div class="sharedbox"><label class="chk"><input type="checkbox" id="shChk"${shared?" checked":""}> השתמש בבחירה אחת בכל המשחקים</label>
-  <select id="shSel"${shared?"":" disabled"} aria-label="הבחירה המשותפת">${SCOPES.filter(s=>s!=="group"||hasGroup).map(s=>`<option value="${s}"${s===shCur?" selected":""}>${scopeLabel(s,"words")}</option>`).join("")}</select>
+  <select id="shSel"${shared?"":" disabled"} aria-label="הבחירה המשותפת">${SCOPES.filter(s=>s!=="missed"&&(s!=="group"||hasGroup)).map(s=>`<option value="${s}"${s===shCur?" selected":""}>${scopeLabel(s,"words")}</option>`).join("")}</select>
   <p class="tip">${shared?"כל המשחקים משתמשים בבחירה הזו, והבחירה בתוך כל משחק נעולה.":"כבוי: בכל משחק אפשר לבחור בנפרד אילו מילים לשחק."}</p></div>`;
  $("awList").innerHTML=`${builder?builderHTML():groupSection()}
  <h4>${filt==="removed"?`מילים שהוסרו (${gone.length})`:`המילים במשחקים (${words.length})`}</h4>

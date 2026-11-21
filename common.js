@@ -117,16 +117,19 @@ function category(w){
  return t.pct!==null&&t.pct>=80?"strong":"weak";   // strong only when a percentage is shown (10 attempts) and it is 80%+
 }
 // ---- which words a game plays: the choice (all / new / weak / strong / group) decides the pool ----
-const SCOPES=["all","new","weak","strong","group"];
+const SCOPES=["all","missed","new","weak","strong","group"];   // "missed" exists only in the flashcards
 const isShared=()=>store.get("wqScopeShared","0")==="1";
 function getScope(g){
  let s=isShared()?store.get("wqScopeSharedValue","all"):store.get("wqScope_"+g,"all");
- if(!SCOPES.includes(s)||(s==="group"&&!group)) s="all";
+ if(!SCOPES.includes(s)||(s==="group"&&!group)||(s==="missed"&&g!=="cards")) s="all";
  return s;
 }
 function groupWords(){ return group?words.filter(w=>group.words.includes(w.w)):[]; }
 // the flashcards' "all" also includes the words you removed (they keep being reviewed)
+// flashcards: the last answer for this word was "✗ לא ידעתי" (a miss stores d = l = that day; a correct answer always stores a later d)
+const cardMissed=w=>{ const c=S.cards[w.w]; return !!c&&c.d<=c.l; };
 function poolOf(scope,game){
+ if(scope==="missed") return allWords.filter(cardMissed);
  if(scope==="group") return groupWords();
  if(scope==="all") return game==="cards"?allWords:words;
  return words.filter(w=>category(w)===scope);
@@ -153,6 +156,7 @@ const HELP={};
 const escHtml=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function scopeLabel(s,game){
  const n=poolOf(s,game).length;
+ if(s==="missed") return `❌ לא ידעתי (${n})`;
  if(s==="group") return `🎯 ${escHtml(group.name)} (${n})`;
  if(s==="all"){
   const gone=game==="cards"?allWords.length-words.length:0;
@@ -165,7 +169,7 @@ function gameBar(game){
  const sc=getScope(game);
  const pick=isShared()
   ?`<div class="scopelock">🔗 בחירה משותפת: <b>${scopeLabel(sc,game)}</b><small>לשינוי: לשונית מילים</small></div>`
-  :`<select class="scopesel" id="scopeSel" aria-label="אילו מילים לשחק">${SCOPES.filter(s=>s!=="group"||group).map(s=>`<option value="${s}"${s===sc?" selected":""}>${scopeLabel(s,game)}</option>`).join("")}</select>`;
+  :`<select class="scopesel" id="scopeSel" aria-label="אילו מילים לשחק">${SCOPES.filter(s=>(s!=="group"||group)&&(s!=="missed"||game==="cards")).map(s=>`<option value="${s}"${s===sc?" selected":""}>${scopeLabel(s,game)}</option>`).join("")}</select>`;
  return `<div class="gbar">${pick}<button class="helpbtn" data-help="${game}" aria-label="הוראות" aria-haspopup="dialog">?</button></div><div id="gMsg"></div>`;
 }
 // true = the game may run. With a message: show it (instead of the game) and hide the game body `#gBody`
