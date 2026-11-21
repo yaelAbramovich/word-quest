@@ -105,7 +105,7 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 .sharedbox{background:#f7f7fb;border-radius:14px;padding:10px 12px;margin:8px 0}.sharedbox .chk{display:flex;gap:8px;align-items:center;font-size:14.5px;font-weight:600}.sharedbox select{width:100%;font:inherit;font-size:15px;padding:9px;border-radius:11px;border:2px solid #e3e3ee;background:#fff;color:var(--dark);margin:8px 0 2px}.sharedbox select:disabled{opacity:.5}.sharedbox .tip{margin:4px 0 0}
 
 /* my group */
-.grp{border:2px solid #b9b0ff;border-radius:18px;padding:12px;margin:0 0 14px;background:#faf9ff}.grp.empty{border-style:dashed;background:transparent}.grph{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}.grph b{font-size:16px}.grph span{color:var(--muted);font-size:13px}
+.grp{border:2px solid #b9b0ff;border-radius:18px;padding:12px;margin:0 0 14px;background:#faf9ff}.grp.empty{border-style:dashed;background:transparent}
 .grp .lbl{display:block;font-size:12.5px;color:var(--muted);margin:8px 0 3px}.grp input:not([type=checkbox]),.grp select{width:100%;box-sizing:border-box;font:inherit;font-size:15px;padding:9px;border-radius:11px;border:2px solid #e3e3ee;background:#fff;color:var(--dark)}.gbrow{display:flex;gap:8px}.gbrow input{flex:0 0 90px}.gbrow button{flex:1;border:0;border-radius:11px;background:#ececf3;font:inherit;font-size:14px}
 .cl li.ingrp{border-inline-start:4px solid #6c5ce7}
 
@@ -130,3 +130,9 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 .gbw.flash{animation:gbflash .6s}@keyframes gbflash{0%{outline:3px solid #1f9d62;background:#d9f5e5}100%{outline:3px solid transparent}}
 .gbquick{display:flex;gap:8px;margin:8px 0}.gbquick button{flex:1;border:0;border-radius:11px;background:#ececf3;color:var(--dark);font:inherit;font-size:13px;padding:9px 4px}
 .undotoast{position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;display:flex;gap:12px;align-items:center;background:#20203b;color:#fff;border-radius:22px;padding:9px 14px;font-size:13.5px;max-width:92vw;box-shadow:0 6px 20px #0004}.undotoast button{border:0;background:transparent;color:#b9b0ff;font:inherit;font-weight:700}
+
+/* slim group card */
+.card2>summary{list-style:revert}.card2 .gtop{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:14.5px}.card2 .gtop .grpsum{margin:0}
+.gprog{display:flex;height:10px;border-radius:6px;overflow:hidden;background:#e6e6ef;margin:8px 0 5px}.gprog i{display:block;min-width:0}
+.gprog .s,.gleg b.s{background:#1f9d62}.gprog .k,.gleg b.k{background:#e6a100}.gprog .n,.gleg b.n{background:#c9c9d6}
+.gleg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted)}.gleg b{display:inline-block;width:8px;height:8px;border-radius:50%;margin-inline-end:4px}

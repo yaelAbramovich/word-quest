@@ -55,7 +55,7 @@ const FILTERS=["all","new","weak","strong","group"];
 let filt=store.get("wqFilter","all");
 const alpha=(a,b)=>a.w.localeCompare(b.w);
 const val=w=>{const t=wstat(w); return !t.n?2:t.pct!==null?t.pct/100:t.c/t.n};   // sort key: lower = weaker
-let grpOpen=store.get("wqGrpOpen","1")==="1";   // the group area can be collapsed; the choice is remembered
+let grpOpen=store.get("wqGrpOpen","0")==="1";   // collapsed by default; the choice is remembered
 const grpOpenAttr=()=>grpOpen?" open":"";
 const setGrpOpen=v=>{ grpOpen=v; store.set("wqGrpOpen",v?"1":"0"); };
 let builder=null;   // while the builder is open: {name,cat,q,picked:Set}
@@ -142,6 +142,8 @@ function groupClick(e){
   const snap=new Set(builder.picked); builder.picked.clear(); drawColumns();
   showUndo("הבחירה נוקתה",snap); return true;
  }
+ const dn=t("[data-grpdone]");
+ if(dn){ const w=allWords.find(x=>x.w===dn.dataset.grpdone); if(w&&hideWord(w)) drawCustom(); return true; }   // hideWord also takes it out of the group
  const card=t(".gbw"); if(card&&builder){ toggleWord(card.dataset.w); return true; }
  if(t("#gbCancel")){ dropUndo(); builder=null; drawCustom(); return true; }
  if(t("#gbSave")){
@@ -192,10 +194,15 @@ function drawCustom(){
 const row=(w,btns,extra,n)=>{ const g=group&&group.words.includes(w.w); return `<li${g?' class="ingrp"':""}><span>${n?`<span class="num">${n}.</span> `:""}${g?"🎯 ":""}<b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span>${btns}${extra||""}</li>`; };
  const groupSection=()=>{
   if(!hasGroup) return `<div class="grp empty"><button class="next" style="display:block;margin:0" data-grpnew>🎯 בניית קבוצה</button><p class="tip">אפשר לבחור כמה מילים בלבד ללמוד עכשיו, לתת להן שם, ולשחק בהן בכל המשחקים.</p></div>`;
-  const gw=groupWords().sort(alpha), strongN=gw.filter(w=>category(w)==="strong").length;
-  return `<details class="grp" id="grpBox"${grpOpenAttr()}><summary><b>🎯 ${esc(group.name)}</b> <span class="grpsum">${gw.length} מילים · ${strongN} חזקות</span></summary>
-  ${strongN===gw.length?`<div class="win">🎉 כל המילים בקבוצה חזקות! אפשר לסיים ולבנות קבוצה חדשה.</div>`:""}
-  <ul class="cl grpl">${gw.map(w=>row(w,"",(category(w)==="strong"?`<div class="st2"><span class="g">✓ חזקה</span></div>`:"")+statLine(w),0)).join("")}</ul>
+  const gw=groupWords().sort(alpha), n={strong:0,weak:0,new:0}; gw.forEach(w=>n[category(w)]++);
+  const done=w=>`<button type="button" class="wide" data-grpdone="${esc(w.w)}">✓ סיימתי ללמוד</button>`;
+  return `<details class="grp card2" id="grpBox"${grpOpenAttr()}><summary>
+   <div class="gtop"><b>🎯 ${esc(group.name)}</b><span class="grpsum">${gw.length} מילים · ${n.strong} חזקות</span></div>
+   <div class="gprog" role="img" aria-label="התקדמות הקבוצה"><i class="s" data-n="${n.strong}" style="flex:${n.strong} 1 0"></i><i class="k" data-n="${n.weak}" style="flex:${n.weak} 1 0"></i><i class="n" data-n="${n.new}" style="flex:${n.new} 1 0"></i></div>
+   <div class="gleg"><span><b class="s"></b>חזקות ${n.strong}</span><span><b class="k"></b>חלשות ${n.weak}</span><span><b class="n"></b>חדשות ${n.new}</span></div>
+  </summary>
+  ${n.strong===gw.length?`<div class="win">🎉 כל המילים בקבוצה חזקות! אפשר לסיים ולבנות קבוצה חדשה.</div>`:""}
+  <ul class="cl grpl">${gw.map(w=>row(w,done(w),(category(w)==="strong"?`<div class="st2"><span class="g">✓ חזקה</span></div>`:"")+statLine(w),0)).join("")}</ul>
   <div class="tools"><button data-grpedit>✏️ עריכת הקבוצה</button><button data-grpend>סיום קבוצה</button></div></details>`;
  };
  const copyIcon=`<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>`;

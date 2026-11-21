@@ -39,7 +39,7 @@ function saveHidden(){ store.set("wqHidden",JSON.stringify([...hidden])); }
 function hideWord(w){
  if(words.length<=MIN_WORDS){ toast(`צריך לפחות ${MIN_WORDS} מילים פעילות כדי שהמשחקים יעבדו`); return false; }
  hidden.add(w.w); saveHidden(); applyHidden();
- if(group){ group.words=group.words.filter(n=>n!==w.w); saveGroup(); }   // a removed word leaves the group
+ if(group){ group.words=group.words.filter(n=>n!==w.w); if(!group.words.length) group=null; saveGroup(); }   // a removed word leaves the group; an empty group is gone
  return true;
 }
 function restoreWord(name){ hidden.delete(name); saveHidden(); applyHidden(); }

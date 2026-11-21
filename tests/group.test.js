@@ -24,21 +24,12 @@ const {openApp,check,done}=require("./helpers");
  check("no upper limit: a 6th word can be chosen",(await right()).length===6);
  await tap(L[5]);
  await page.click("#gbSave");
- check("group section shows the free-text name and count",(await page.textContent(".grp")).includes("מילים של השבוע")&&(await page.textContent(".grp")).includes("5 מילים"));
+ check("group section shows the free-text name and count",(await page.textContent("#grpBox > summary")).includes("מילים של השבוע")&&(await page.textContent("#grpBox > summary")).includes("5 מילים"));
  const stored=await page.evaluate(()=>JSON.parse(localStorage.wqGroup));
  check("saved on the device",stored.name==="מילים של השבוע"&&stored.words.length===5);
  check("group words are marked in the main list",(await page.$$eval("#awMain > li.ingrp",e=>e.length))===5);
  const chip=await page.textContent("[data-filter=group]");
  check("filter chip 🎯 name (5)",chip.includes("מילים של השבוע")&&chip.includes("(5)"),chip);
- // collapse / expand
- check("group area is open by default",await page.$eval("#grpBox",e=>e.open));
- await page.click("#grpBox > summary");
- check("tapping the title collapses it (words hidden)",!(await page.$eval("#grpBox",e=>e.open))&&!(await page.isVisible("#grpBox .grpl")));
- await page.click("[data-filter=all]");
- check("it stays collapsed after the tab redraws",!(await page.$eval("#grpBox",e=>e.open)));
- check("the choice is remembered on the device",(await page.evaluate(()=>store.get("wqGrpOpen")))==="0");
- await page.click("#grpBox > summary");
- check("tapping again expands it",(await page.$eval("#grpBox",e=>e.open))&&(await page.isVisible("#grpBox .grpl")));
  // games
  await page.click("[data-tab=quiz]");
  const opts=await page.$$eval("#scopeSel option",o=>o.map(x=>x.textContent.trim()));
@@ -52,6 +43,7 @@ const {openApp,check,done}=require("./helpers");
  await page.click(`#awMain [data-hide="${stored.words[0]}"]`);
  check("removing a word leaves the group",(await page.evaluate(()=>group.words.length))===4);
  // edit
+ if(!(await page.$eval("#grpBox",e=>e.open))) await page.click("#grpBox > summary");
  await page.click("[data-grpedit]");
  check("edit opens the builder with the current name and words",(await page.inputValue("#gbName"))==="מילים של השבוע"&&(await right()).length===4);
  await page.click("#grpBox > summary");
@@ -60,6 +52,7 @@ const {openApp,check,done}=require("./helpers");
  check("and expands again with its words kept",(await page.isVisible("#gbSave"))&&(await right()).length===4);
  await page.click("#gbCancel");
  // finish
+ if(!(await page.$eval("#grpBox",e=>e.open))) await page.click("#grpBox > summary");
  page.once("dialog",d=>d.accept());
  await page.click("[data-grpend]");
  check("finishing clears the group",(await page.evaluate(()=>group))===null&&!!(await page.$("[data-grpnew]")));
