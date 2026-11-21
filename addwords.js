@@ -86,6 +86,7 @@ function drawLeft(){   // search or category changed: only the left column, from
 // the word card itself is moved (never a redraw), so nothing scrolls or jumps
 function toggleWord(name){
  const w=words.find(x=>x.w===name); if(!w) return;
+ const snap=new Set(builder.picked);
  const chosen=!builder.picked.has(name);
  chosen?builder.picked.add(name):builder.picked.delete(name);
  const old=[...document.querySelectorAll("#gbLeft .gbw,#gbRight .gbw")].find(c=>c.dataset.w===name);
@@ -97,6 +98,18 @@ function toggleWord(name){
   target.insertBefore(el,next||null); el.classList.add("flash");
  }
  updateBuilderCounts();
+ showUndo(chosen?`${name} נוספה לקבוצה`:`${name} הוסרה מהקבוצה`,snap);
+}
+// ---- undo: one level. A snapshot of the chosen words is kept for a few seconds after every move ----
+let undoSnap=null, undoTimer=null;
+function dropUndo(){ clearTimeout(undoTimer); undoSnap=null; document.querySelectorAll(".undotoast").forEach(x=>x.remove()); }
+function showUndo(msg,snap){
+ dropUndo(); undoSnap=snap;
+ const d=document.createElement("div"); d.className="undotoast";
+ d.innerHTML=`<span>${esc(msg)}</span><button type="button" id="gbUndo">ביטול</button>`;
+ d.querySelector("button").onclick=()=>{ if(builder&&undoSnap){ builder.picked=new Set(undoSnap); drawColumns(); } dropUndo(); };
+ document.body.appendChild(d);
+ undoTimer=setTimeout(dropUndo,4000);
 }
 function builderHTML(){
  return `<details class="grp building" id="grpBox"${grpOpenAttr()}><summary><b>🎯 ${group?"עריכת הקבוצה":"קבוצה חדשה"}</b></summary>
@@ -104,6 +117,7 @@ function builderHTML(){
  <label class="lbl">חיפוש (אנגלית או עברית)</label><input id="gbSearch" type="search" placeholder="🔎 חיפוש מילה…" value="${esc(builder.q)}" autocapitalize="none" autocorrect="off">
  <label class="lbl">אילו מילים להציג ברשימה משמאל?</label><select id="gbCat">${BUILD_CATS.map(([k,t])=>`<option value="${k}"${builder.cat===k?" selected":""}>${t}</option>`).join("")}</select>
  ${builderSumHTML()}
+ <div class="gbquick"><button type="button" id="gbAll">הוספת הכל מהרשימה</button><button type="button" id="gbClear">ניקוי הבחירה</button></div>
  <div class="gbcols">
   <div class="gbcol on"><h5><span>✓ נבחרו</span><span id="gbCntR">${rightWords().length}</span></h5><div class="gbbody" id="gbRight">${rightWords().map(w=>bCard(w,true)).join("")}</div></div>
   <div class="gbcol"><h5><span>לא נבחרו</span><span id="gbCntL">${leftWords().length}</span></h5><div class="gbbody" id="gbLeft">${leftWords().map(w=>bCard(w,false)).join("")}</div></div>
@@ -118,13 +132,23 @@ function groupClick(e){
   if(confirm(`לסיים את הקבוצה "${group.name}"? ההתקדמות של המילים נשמרת.`)){ group=null; saveGroup(); if(filt==="group"){ filt="all"; store.set("wqFilter",filt); } drawCustom(); }
   return true;
  }
+ if(t("#gbAll")&&builder){
+  const shown=leftWords(); if(!shown.length) return true;
+  const snap=new Set(builder.picked); shown.forEach(w=>builder.picked.add(w.w)); drawColumns();
+  showUndo(`${shown.length} מילים נוספו לקבוצה`,snap); return true;
+ }
+ if(t("#gbClear")&&builder){
+  if(!builder.picked.size) return true;
+  const snap=new Set(builder.picked); builder.picked.clear(); drawColumns();
+  showUndo("הבחירה נוקתה",snap); return true;
+ }
  const card=t(".gbw"); if(card&&builder){ toggleWord(card.dataset.w); return true; }
- if(t("#gbCancel")){ builder=null; drawCustom(); return true; }
+ if(t("#gbCancel")){ dropUndo(); builder=null; drawCustom(); return true; }
  if(t("#gbSave")){
   const name=builder.name.trim();
   if(!name){ toast("צריך לתת שם לקבוצה"); return true; }
   if(builder.picked.size<GROUP_MIN){ toast(`צריך לבחור לפחות ${GROUP_MIN} מילים`); return true; }
-  group={name:name.slice(0,30),words:[...builder.picked]}; saveGroup(); builder=null; drawCustom(); toast("הקבוצה נשמרה ✓");
+  dropUndo(); group={name:name.slice(0,30),words:[...builder.picked]}; saveGroup(); builder=null; drawCustom(); toast("הקבוצה נשמרה ✓");
   return true;
  }
  return false;
