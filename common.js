@@ -15,6 +15,12 @@ const S={
  cards:parse("wqCards","{}"),   // flashcards (spaced repetition): per word {b: box, d: next due day, l: last seen day}
  keyHandler:null
 };
+// Which built-in words does this device get? Decided once and remembered (wqPack):
+// people who already used the app keep their original 19 words (legacy); a brand-new device gets the 10 starter words.
+const EXISTING_USER_KEYS=["wqTab","wqStats","wqCustom","wqHidden","wqCards","wqEdits"];
+let pack=store.get("wqPack","");
+if(!pack){ pack=EXISTING_USER_KEYS.some(k=>store.get(k,null)!==null)?"legacy":"starter"; store.set("wqPack",pack); }
+if(pack==="legacy") words.splice(0,words.length,...legacyWords);
 // words the user added (from an image or by hand) are stored on the device and merged into the word list
 // built-in words you deleted for good stay deleted (words you added yourself are simply removed from wqCustom)
 const deleted=new Set(parse("wqDeleted","[]"));

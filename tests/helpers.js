@@ -15,27 +15,34 @@ function serve(){
  });
  return new Promise(ok=>srv.listen(0,()=>ok({url:`http://localhost:${srv.address().port}/`,close:()=>srv.close()})));
 }
-// names of the built-in words, read from words.js
-function wordNames(){
- const ctx={}; vm.runInNewContext(fs.readFileSync(path.join(ROOT,"words.js"),"utf8")+";this.words=words;",ctx);
- return ctx.words.map(w=>w.w);
+// names of the built-in words of a pack, read from its file (default: the 19 legacy words the existing tests use)
+function namesFrom(file,variable){
+ const ctx={}; vm.runInNewContext(fs.readFileSync(path.join(ROOT,file),"utf8")+";this.list="+variable+";",ctx);
+ return ctx.list.map(w=>w.w);
 }
+const wordNames=()=>namesFrom("legacy-words.js","legacyWords");
+const starterNames=()=>namesFrom("words.js","words");
 // seeds localStorage once per browser profile: strong = 10 correct over 3 days, weak = a few attempts (the first weak word has a single correct attempt)
 async function openApp(plan={}){
  const srv=await serve(), browser=await chromium.launch();
  const page=await browser.newPage({viewport:{width:390,height:800}});
  const errors=[]; page.on("pageerror",e=>errors.push(e.message));
- await page.addInitScript(({strong,weak,removed,storage})=>{
+ const mode=plan.pack||"seeded";   // "seeded" (default, legacy pack), "starter" (a brand-new device), "raw" (only the given storage)
+ const storage=mode==="raw"?plan.storage:Object.assign({wqPack:"legacy"},plan.storage);
+ await page.addInitScript(({strong,weak,removed,storage,mode})=>{
   if(localStorage.getItem("__seeded")) return;
   localStorage.setItem("__seeded","1");
-  const days=["2026-11-01","2026-11-02","2026-11-03"], st={};
-  (strong||[]).forEach(n=>{ st[n]=Array.from({length:10},(_,i)=>[1,days[i%3]]); });
-  (weak||[]).forEach((n,i)=>{ st[n]=i===0?[[1,days[0]]]:[[1,days[0]],[0,days[1]],[0,days[2]]]; });
-  localStorage.setItem("wqStats",JSON.stringify(st));
-  localStorage.setItem("wqHidden",JSON.stringify(removed||[]));
+  if(mode==="starter") return;
+  if(mode==="seeded"){
+   const days=["2026-11-01","2026-11-02","2026-11-03"], st={};
+   (strong||[]).forEach(n=>{ st[n]=Array.from({length:10},(_,i)=>[1,days[i%3]]); });
+   (weak||[]).forEach((n,i)=>{ st[n]=i===0?[[1,days[0]]]:[[1,days[0]],[0,days[1]],[0,days[2]]]; });
+   localStorage.setItem("wqStats",JSON.stringify(st));
+   localStorage.setItem("wqHidden",JSON.stringify(removed||[]));
+  }
   Object.entries(storage||{}).forEach(([k,v])=>localStorage.setItem(k,typeof v==="string"?v:JSON.stringify(v)));
- },{strong:plan.strong,weak:plan.weak,removed:plan.removed,storage:plan.storage});
+ },{strong:plan.strong,weak:plan.weak,removed:plan.removed,storage,mode});
  await page.goto(srv.url);
  return {page,names:wordNames(),errors,close:async()=>{ await browser.close(); srv.close(); }};
 }
-module.exports={openApp,check,done,wordNames};
+module.exports={openApp,check,done,wordNames,starterNames};
