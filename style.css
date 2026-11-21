@@ -136,3 +136,7 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 .gprog{display:flex;height:10px;border-radius:6px;overflow:hidden;background:#e6e6ef;margin:8px 0 5px}.gprog i{display:block;min-width:0}
 .gprog .s,.gleg b.s{background:#1f9d62}.gprog .k,.gleg b.k{background:#e6a100}.gprog .n,.gleg b.n{background:#c9c9d6}
 .gleg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted)}.gleg b{display:inline-block;width:8px;height:8px;border-radius:50%;margin-inline-end:4px}
+/* group card: arrow inside the title line (not on a line of its own); builder: room for the arrow hint */
+.card2>summary{list-style:none}.card2>summary::-webkit-details-marker{display:none}
+.card2 .gtop::after{content:"◂";order:3;color:#6c5ce7;font-size:16px;margin-inline-start:4px}.card2[open] .gtop::after{content:"▾"}
+.gbcol:not(.on) .gbw{padding-left:22px}
