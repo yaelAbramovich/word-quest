@@ -227,7 +227,7 @@ const row=(w,btns,extra,n)=>{ const g=group&&group.words.includes(w.w); return `
  $("awList").innerHTML=`${builder?builderHTML():groupSection()}
  <h4>${filt==="removed"?`מילים שהוסרו (${gone.length})`:`המילים במשחקים (${words.length})`}</h4>
  <p class="sub">חדשה = עוד לא תורגלה. חלשה = תורגלה ועדיין אין אחוז, או שהאחוז מתחת ל-80%. חזקה = יש אחוז (אחרי ${WINDOW} ניסיונות) ו-80% ומעלה. האחוז נמדד רק בתשבץ ובחידון, ומופיע אחרי ${WINDOW} ניסיונות. הוא מבוסס על ${WINDOW} הניסיונות האחרונים. 100% = כל הניסיונות נכונים, עם הצלחות ב-${DAYS_FOR_100} ימים שונים. בפחות ימים — המקסימום 90%. רמז או "גלי מילה" נחשבים כאילו לא ידעת. מילים חדשות וחלשות יופיעו יותר. בנוסף, מתחת לכל מילה מוצגת הספירה הכוללת מאז ומעולם: הצלחות, טעויות וכמה פעמים נעזרת ברמז.</p>
- ${missing?`<button class="next" style="display:block;margin:8px 0" data-fillall>🔍 חיפוש משפטים ל-${missing} מילים שחסר להן</button>`:""}
+ ${missing?`<button class="next" style="display:block;margin:8px 0" data-fillall>🔍 חיפוש משפטים ל-${missing} מילים שחסר להן</button>`:""}${fillMsg?`<div class="sub fillmsg">${fillMsg}</div>`:""}
  <div class="sum">${cnt.new} חדשות · ${cnt.weak} חלשות · ${cnt.strong} חזקות${avg===null?"":` · ממוצע ${avg}%`}${rec.length?` · 💡 ${rec.length} מומלצות להסרה`:""}</div>
  ${rec.length?`<div class="recl">המילים המומלצות להסרה: ${rec.map(w=>`<b dir="ltr">${esc(w.w)}</b>`).join(" · ")}</div><button class="next" style="display:block;margin:8px 0;background:var(--green)" data-removerec>💡 הסרת ${rec.length} המילים המומלצות להסרה</button>`:""}
  ${sharedBox}
@@ -271,16 +271,28 @@ async function add(){
  const todo=fresh.filter(w=>!w.ex);
  if(todo.length) await fillSentences(todo);
 }
+let fillMsg="", fillBusy=false;   // the result of the last sentence search is shown under the button (the old status line is inside a collapsed section)
 async function fillSentences(list){
- let got=0;
- for(let i=0;i<list.length;i++){
-  $("awSt").textContent=`מחפשת משפטים… ${i+1}/${list.length}`;
-  const x=await findSentence(list[i].w);
-  if(x){ setSentences(list[i],[x]); got++; }
- }
+ if(fillBusy) return;
+ fillBusy=true; fillMsg="";
+ let got=0, fails=0;
+ try{
+  for(let i=0;i<list.length;i++){
+   const txt=`מחפשת משפטים… ${i+1}/${list.length}`;
+   $("awSt").textContent=txt;
+   const btn=document.querySelector("[data-fillall]"); if(btn){ btn.disabled=true; btn.textContent="⏳ "+txt; }   // progress on the button itself
+   const x=await findSentence(list[i].w);
+   if(x){ setSentences(list[i],[x]); got++; } else if(exFailed[list[i].w]) fails++;
+  }
+ }finally{ fillBusy=false; }
+ const n=list.length;
+ fillMsg=got===n?`✓ נמצאו משפטים לכל ${n} המילים.`
+  :got>0?`נמצאו משפטים ל-${got} מתוך ${n} מילים. לשאר אפשר לכתוב משפט ידנית עם ✏️ ברשימה למטה.${fails?` (ל-${fails} מילים לא הצלחתי להתחבר — אפשר ללחוץ שוב)`:""}`
+  :fails?"לא הצלחתי להתחבר לשירות המשפטים (אולי אין חיבור לאינטרנט). נסי שוב בעוד רגע."
+  :"לא מצאתי משפטים למילים האלה. אפשר לכתוב משפט ידנית עם ✏️ ברשימה למטה.";
  drawCustom();
- $("awSt").textContent=`נמצאו משפטים ל-${got} מתוך ${list.length} מילים.${got<list.length?" לשאר אפשר לכתוב משפט ידנית עם ✏️ ברשימה למטה.":""}`;
- if(!$("awSt").isConnected) toast(`נמצאו משפטים ל-${got} מתוך ${list.length}`);
+ $("awSt").textContent=fillMsg;
+ toast(got===n?`נמצאו משפטים לכל ${n} המילים`:got>0?`נמצאו משפטים ל-${got} מתוך ${n}`:fails?"אין חיבור לשירות המשפטים":"לא נמצאו משפטים");
 }
 
 // ---- voice settings ----
@@ -292,7 +304,7 @@ function fillVoices(){
 }
 function markRate(){ document.querySelectorAll("[data-rate]").forEach(b=>b.classList.toggle("on",+b.dataset.rate===getRate())); }
 
-games.addwords={render(c){
+games.addwords={render(c){ fillMsg="";
  c.innerHTML=`
  <details class="adder vbox"><summary>🗣️ קול והגייה</summary>
  <div class="st" id="vNow"></div>

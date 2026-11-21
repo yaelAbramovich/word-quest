@@ -338,7 +338,7 @@ function setSentences(w,list){
  if(!w.exs.includes(w.ex)) w.ex=w.exs[0]||"";
  persistWord(w);
 }
-const exCache={};
+const exCache={}, exFailed={};   // exFailed[word]: the last lookup failed (no connection / service busy). Failures are NOT remembered, so clicking again tries again
 function cleanEx(t){
  const d=document.createElement("textarea"); d.innerHTML=t.replace(/<[^>]+>/g,"");
  let x=d.value.replace(/\s+/g," ").trim();
@@ -347,9 +347,10 @@ function cleanEx(t){
 }
 async function sentenceCandidates(word){
  if(exCache[word]) return exCache[word];
- let good=[];
+ let good=[], failed=false;
  try{
   const r=await fetch("https://en.wiktionary.org/api/rest_v1/page/definition/"+encodeURIComponent(word));
+  if(!r.ok&&r.status!==404) failed=true;   // 404 = the service does not know the word: a real answer
   if(r.ok){
    const j=await r.json(), ex=[];
    for(const sec of (j.en||[])) for(const d of sec.definitions) for(const e of (d.examples||[])) ex.push(cleanEx(e));
@@ -358,8 +359,9 @@ async function sentenceCandidates(word){
    good=[...new Set(ex.filter(x=>x.length>=15&&x.length<=140&&re.test(x)))];
    good.sort((a,b)=>(/^[A-Z].*[.!?]$/.test(b)-/^[A-Z].*[.!?]$/.test(a))||Math.abs(a.length-60)-Math.abs(b.length-60));
   }
- }catch(e){}
- return exCache[word]=good;
+ }catch(e){ failed=true; }
+ exFailed[word]=failed;
+ return failed?good:(exCache[word]=good);
 }
 async function findSentence(word){ return (await sentenceCandidates(word))[0]||null; }
 // add one more sentence from Wiktionary (one the word does not have yet) and use it; returns it, or null when there is none
