@@ -16,6 +16,9 @@ const S={
  keyHandler:null
 };
 // words the user added (from an image or by hand) are stored on the device and merged into the word list
+// built-in words you deleted for good stay deleted (words you added yourself are simply removed from wqCustom)
+const deleted=new Set(parse("wqDeleted","[]"));
+for(let i=words.length-1;i>=0;i--) if(deleted.has(words[i].w)) words.splice(i,1);
 parse("wqCustom","[]").forEach(c=>{ if(!words.some(x=>x.w===c.w)) words.push(c); });
 // every word has a list of example sentences (`exs`); `ex` is the one currently in use.
 // meanings and sentences of the built-in words that you edited are kept in wqEdits
@@ -43,6 +46,19 @@ function hideWord(w){
  return true;
 }
 function restoreWord(name){ hidden.delete(name); saveHidden(); applyHidden(); }
+// delete a word for good: the word itself, its progress and edits, and its place in the group.
+// An active word cannot be deleted when only MIN_WORDS active words remain (the games need words); a done (removed) word always can.
+function deleteWord(w){
+ if(!hidden.has(w.w)&&words.length<=MIN_WORDS){ toast(`צריך לפחות ${MIN_WORDS} מילים פעילות כדי שהמשחקים יעבדו`); return false; }
+ const i=allWords.indexOf(w); if(i>=0) allWords.splice(i,1);
+ if(w.custom) saveCustom(); else { deleted.add(w.w); store.set("wqDeleted",JSON.stringify([...deleted])); }
+ hidden.delete(w.w); saveHidden(); applyHidden();
+ if(group){ group.words=group.words.filter(n=>n!==w.w); if(!group.words.length) group=null; saveGroup(); }
+ [S.stats,S.totals,S.mistakes,S.cards].forEach(o=>{ delete o[w.w]; }); S.learned.delete(w.w);
+ delete edits[w.w]; store.set("wqEdits",JSON.stringify(edits));
+ save();
+ return true;
+}
 applyHidden();
 const games={};
 let currentTab=null;

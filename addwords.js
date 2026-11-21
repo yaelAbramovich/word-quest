@@ -233,8 +233,8 @@ const row=(w,btns,extra,n)=>{ const g=group&&group.words.includes(w.w); return `
  ${sharedBox}
  <div class="tools sorts">${fb("all","הכל",cnt.all)}${fb("new","חדשות",cnt.new)}${fb("weak","חלשות",cnt.weak)}${fb("strong","חזקות",cnt.strong)}${hasGroup?fb("group",`🎯 ${esc(group.name)}`,groupWords().length):""}</div>
  ${act.length?"":`<p class="sub">אין מילים בקטגוריה הזו כרגע.</p>`}
- <ul class="cl" id="awMain">${act.map((w,i)=>row(w,`<button data-copy="${esc(w.w)}" aria-label="העתקת מילה"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button><button data-say="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-edit="${esc(w.w)}" aria-label="עריכת משמעות ומשפטים">✏️</button><button data-hide="${esc(w.w)}" aria-label="מכירה טוב" title="מכירה טוב">✓</button>${w.custom?`<button data-rm="${esc(w.w)}" aria-label="מחיקה">✕</button>`:""}`,editing===w.w?editBox(w):statLine(w)+exLine(w),i+1)).join("")}</ul>`+
- (gone.length?`<h4>מילים שהוסרו (${gone.length})</h4><ul class="cl">${gone.map(w=>row(w,`<button data-restore="${esc(w.w)}" class="wide" aria-label="החזרה">↩ החזרה</button>`)).join("")}</ul>`:"");
+ <ul class="cl" id="awMain">${act.map((w,i)=>row(w,`<button data-copy="${esc(w.w)}" aria-label="העתקת מילה"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button><button data-say="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-edit="${esc(w.w)}" aria-label="עריכת משמעות ומשפטים">✏️</button><button data-hide="${esc(w.w)}" aria-label="מכירה טוב" title="מכירה טוב">✓</button><button data-delword="${esc(w.w)}" aria-label="מחיקה לצמיתות" title="מחיקה לצמיתות">🗑</button>`,editing===w.w?editBox(w):statLine(w)+exLine(w),i+1)).join("")}</ul>`+
+ (gone.length?`<h4>מילים שהוסרו (${gone.length})</h4><ul class="cl">${gone.map(w=>row(w,`<button data-restore="${esc(w.w)}" class="wide" aria-label="החזרה">↩ החזרה</button><button data-delword="${esc(w.w)}" aria-label="מחיקה לצמיתות" title="מחיקה לצמיתות">🗑</button>`)).join("")}</ul>`:"");
 }
 
 async function onImage(file){
@@ -361,9 +361,15 @@ games.addwords={render(c){
   if(h){ const w=allWords.find(x=>x.w===h.dataset.hide); if(w&&hideWord(w)) drawCustom(); return; }
   const r=e.target.closest("[data-restore]");
   if(r){ restoreWord(r.dataset.restore); drawCustom(); return; }
-  const d=e.target.closest("[data-rm]"); if(!d) return;
-  const i=allWords.findIndex(w=>w.custom&&w.w===d.dataset.rm); if(i>=0) allWords.splice(i,1);
-  hidden.delete(d.dataset.rm); saveHidden(); saveCustom(); applyHidden(); renderStats(); drawCustom();
+  const dw=e.target.closest("[data-delword]");
+  if(dw){
+   const w=allWords.find(x=>x.w===dw.dataset.delword); if(!w) return;
+   if(confirm(`למחוק את "${w.w}" לצמיתות?\nגם ההתקדמות שלו והעריכות שלו יימחקו.`)&&deleteWord(w)){
+    if(builder) builder.picked.delete(w.w);   // the group builder must not keep a deleted word
+    renderStats(); drawCustom(); toast("המילה נמחקה");
+   }
+   return;
+  }
  });
  $("awList").addEventListener("change",e=>{
   if(groupChange(e)) return;
