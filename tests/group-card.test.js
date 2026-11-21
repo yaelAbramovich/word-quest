@@ -31,7 +31,8 @@ const {openApp,check,done}=require("./helpers");
  await page.click(`[data-grpdone="${w0}"]`);
  const st=await page.evaluate(w=>({g:group.words,hidden:hidden.has(w)}),w0);
  check("'סיימתי ללמוד' removes the word from the group and from the games",st.g.length===4&&!st.g.includes(w0)&&st.hidden,JSON.stringify(st));
- check("the word appears in the removed words list",!!(await page.$(`[data-restore="${w0}"]`)));
+ await page.click("[data-filter=removed]");
+ check("the word appears in the removed words list (the 'מילים שהוסרו' filter)",!!(await page.$(`[data-restore="${w0}"]`)));
  await page.click(`[data-restore="${w0}"]`);
  check("restoring does not put it back in the group",(await page.evaluate(()=>group.words.length))===4);
  // finishing every word removes the group

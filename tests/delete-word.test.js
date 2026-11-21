@@ -10,7 +10,9 @@ const {openApp,check,done}=require("./helpers");
  const inLS=(key,name)=>page.evaluate(([k,n])=>(localStorage.getItem(k)||"").includes('"'+n+'"'),[key,name]);
 
  check("every row of the main list has a 🗑 button",(await page.$$eval("#awMain > li [data-delword]",e=>e.length))===active);
- check("every removed (done) word has a 🗑 button too",(await page.$$eval("li:has([data-restore]) [data-delword]",e=>e.length))===3);
+ await page.click("[data-filter=removed]");
+ check("every removed (done) word has a restore and a 🗑 button (in the 'מילים שהוסרו' filter)",(await page.$$eval("#awMain > li [data-delword]",e=>e.length))===3&&(await page.$$eval("#awMain > li [data-restore]",e=>e.length))===3);
+ await page.click("[data-filter=all]");
  check("no 🗑 inside the group card",!(await page.$("#grpBox [data-delword]")));
 
  // cancel keeps the word
@@ -40,9 +42,11 @@ const {openApp,check,done}=require("./helpers");
 
  // a done (removed) word
  const gone=removed[0];
+ await page.click("[data-filter=removed]");
  page.once("dialog",d=>d.accept());
  await page.click(`li:has([data-restore="${gone}"]) [data-delword]`);
  check("a done word can be deleted from the removed list",!(await page.$(`[data-restore="${gone}"]`))&&!(await page.evaluate(n=>allWords.some(w=>w.w===n),gone)));
+ await page.click("[data-filter=all]");
 
  // deleting every word of the group clears the group
  for(const n of grp.slice(1)){ page.once("dialog",d=>d.accept()); await page.click(`#awMain [data-delword="${n}"]`); }
@@ -55,6 +59,7 @@ const {openApp,check,done}=require("./helpers");
  page.once("dialog",d=>d.accept());
  await page.click(`#awMain [data-delword="${keepName}"]`);
  check("with only 8 active words an active word cannot be deleted (message, nothing changes)",(await page.textContent(".toast")).includes("8")&&await page.evaluate(n=>allWords.some(w=>w.w===n),keepName));
+ await page.click("[data-filter=removed]");
  const doneName=await page.$eval("[data-restore]",e=>e.dataset.restore);
  page.once("dialog",d=>d.accept());
  await page.click(`li:has([data-restore="${doneName}"]) [data-delword]`);

@@ -51,7 +51,7 @@ function drawRows(){
 }
 let editing=null;
 const openEx=new Set(), openM=new Set();
-const FILTERS=["all","new","weak","strong","group"];
+const FILTERS=["all","new","weak","strong","removed"];   // "removed" = the done words (an old saved "group" filter falls back to "all")
 let filt=store.get("wqFilter","all");
 const alpha=(a,b)=>a.w.localeCompare(b.w);
 const val=w=>{const t=wstat(w); return !t.n?2:t.pct!==null?t.pct/100:t.c/t.n};   // sort key: lower = weaker
@@ -129,7 +129,7 @@ function groupClick(e){
  if(t("[data-grpnew]")){ setGrpOpen(true); builder={name:"קבוצה 1",cat:"all",q:"",picked:new Set()}; drawCustom(); return true; }
  if(t("[data-grpedit]")){ setGrpOpen(true); builder={name:group.name,cat:"all",q:"",picked:new Set(groupWords().map(w=>w.w))}; drawCustom(); return true; }
  if(t("[data-grpend]")){
-  if(confirm(`לסיים את הקבוצה "${group.name}"? ההתקדמות של המילים נשמרת.`)){ group=null; saveGroup(); if(filt==="group"){ filt="all"; store.set("wqFilter",filt); } drawCustom(); }
+  if(confirm(`לסיים את הקבוצה "${group.name}"? ההתקדמות של המילים נשמרת.`)){ group=null; saveGroup(); drawCustom(); }
   return true;
  }
  if(t("#gbAll")&&builder){
@@ -180,17 +180,17 @@ function statLine(w){
  <div class="st2 tot"><span class="g">✓ הצלחות: ${tt.s}</span><span class="r">✗ טעויות: ${tt.m}</span><span class="y">💡 עזרות: ${tt.h}</span></div>`;
 }
 function drawCustom(){
- const gone=allWords.filter(w=>hidden.has(w.w));
+ const gone=allWords.filter(w=>hidden.has(w.w)).sort(alpha);
  const cnt={all:words.length,new:0,weak:0,strong:0}; words.forEach(w=>cnt[category(w)]++);
  const hasGroup=!!group&&groupWords().length>0;
- if(!FILTERS.includes(filt)||(filt==="group"&&!hasGroup)) filt="all";
+ if(!FILTERS.includes(filt)) filt="all";
  const act=filt==="strong"?words.filter(w=>category(w)==="strong").sort((a,b)=>val(b)-val(a))
   :filt==="weak"?words.filter(w=>category(w)==="weak").sort((a,b)=>val(a)-val(b))
   :filt==="new"?words.filter(w=>category(w)==="new").sort(alpha)
-  :filt==="group"?groupWords().sort(alpha)
   :[...words].sort(alpha);
  const withPct=words.map(wstat).filter(t=>t.pct!==null);
  const avg=withPct.length?Math.round(withPct.reduce((x,t)=>x+t.pct,0)/withPct.length):null;
+const removedBtns=w=>`<button data-restore="${esc(w.w)}" class="wide" aria-label="החזרה">↩ החזרה</button><button data-delword="${esc(w.w)}" aria-label="מחיקה לצמיתות" title="מחיקה לצמיתות">🗑</button>`;
 const row=(w,btns,extra,n)=>{ const g=group&&group.words.includes(w.w); return `<li${g?' class="ingrp"':""}><span>${n?`<span class="num">${n}.</span> `:""}${g?"🎯 ":""}<b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span>${btns}${extra||""}</li>`; };
  const groupSection=()=>{
   if(!hasGroup) return `<div class="grp empty"><button class="next" style="display:block;margin:0" data-grpnew>🎯 בניית קבוצה</button><p class="tip">אפשר לבחור כמה מילים בלבד ללמוד עכשיו, לתת להן שם, ולשחק בהן בכל המשחקים.</p></div>`;
@@ -225,16 +225,15 @@ const row=(w,btns,extra,n)=>{ const g=group&&group.words.includes(w.w); return `
   <select id="shSel"${shared?"":" disabled"} aria-label="הבחירה המשותפת">${SCOPES.filter(s=>s!=="group"||hasGroup).map(s=>`<option value="${s}"${s===shCur?" selected":""}>${scopeLabel(s,"words")}</option>`).join("")}</select>
   <p class="tip">${shared?"כל המשחקים משתמשים בבחירה הזו, והבחירה בתוך כל משחק נעולה.":"כבוי: בכל משחק אפשר לבחור בנפרד אילו מילים לשחק."}</p></div>`;
  $("awList").innerHTML=`${builder?builderHTML():groupSection()}
- <h4>המילים במשחקים (${words.length})</h4>
+ <h4>${filt==="removed"?`מילים שהוסרו (${gone.length})`:`המילים במשחקים (${words.length})`}</h4>
  <p class="sub">חדשה = עוד לא תורגלה. חלשה = תורגלה ועדיין אין אחוז, או שהאחוז מתחת ל-80%. חזקה = יש אחוז (אחרי ${WINDOW} ניסיונות) ו-80% ומעלה. האחוז נמדד רק בתשבץ ובחידון, ומופיע אחרי ${WINDOW} ניסיונות. הוא מבוסס על ${WINDOW} הניסיונות האחרונים. 100% = כל הניסיונות נכונים, עם הצלחות ב-${DAYS_FOR_100} ימים שונים. בפחות ימים — המקסימום 90%. רמז או "גלי מילה" נחשבים כאילו לא ידעת. מילים חדשות וחלשות יופיעו יותר. בנוסף, מתחת לכל מילה מוצגת הספירה הכוללת מאז ומעולם: הצלחות, טעויות וכמה פעמים נעזרת ברמז.</p>
  ${missing?`<button class="next" style="display:block;margin:8px 0" data-fillall>🔍 חיפוש משפטים ל-${missing} מילים שחסר להן</button>`:""}
  <div class="sum">${cnt.new} חדשות · ${cnt.weak} חלשות · ${cnt.strong} חזקות${avg===null?"":` · ממוצע ${avg}%`}${rec.length?` · 💡 ${rec.length} מומלצות להסרה`:""}</div>
  ${rec.length?`<div class="recl">המילים המומלצות להסרה: ${rec.map(w=>`<b dir="ltr">${esc(w.w)}</b>`).join(" · ")}</div><button class="next" style="display:block;margin:8px 0;background:var(--green)" data-removerec>💡 הסרת ${rec.length} המילים המומלצות להסרה</button>`:""}
  ${sharedBox}
- <div class="tools sorts">${fb("all","הכל",cnt.all)}${fb("new","חדשות",cnt.new)}${fb("weak","חלשות",cnt.weak)}${fb("strong","חזקות",cnt.strong)}${hasGroup?fb("group",`🎯 ${esc(group.name)}`,groupWords().length):""}</div>
- ${act.length?"":`<p class="sub">אין מילים בקטגוריה הזו כרגע.</p>`}
- <ul class="cl" id="awMain">${act.map((w,i)=>row(w,`<button data-copy="${esc(w.w)}" aria-label="העתקת מילה"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button><button data-say="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-edit="${esc(w.w)}" aria-label="עריכת משמעות ומשפטים">✏️</button><button data-hide="${esc(w.w)}" aria-label="מכירה טוב" title="מכירה טוב">✓</button><button data-delword="${esc(w.w)}" aria-label="מחיקה לצמיתות" title="מחיקה לצמיתות">🗑</button>`,editing===w.w?editBox(w):statLine(w)+exLine(w),i+1)).join("")}</ul>`+
- (gone.length?`<h4>מילים שהוסרו (${gone.length})</h4><ul class="cl">${gone.map(w=>row(w,`<button data-restore="${esc(w.w)}" class="wide" aria-label="החזרה">↩ החזרה</button><button data-delword="${esc(w.w)}" aria-label="מחיקה לצמיתות" title="מחיקה לצמיתות">🗑</button>`)).join("")}</ul>`:"");
+ <div class="tools sorts">${fb("all","הכל",cnt.all)}${fb("new","חדשות",cnt.new)}${fb("weak","חלשות",cnt.weak)}${fb("strong","חזקות",cnt.strong)}${fb("removed","מילים שהוסרו",gone.length)}</div>
+ ${(filt==="removed"?gone.length:act.length)?"":`<p class="sub">${filt==="removed"?"אין מילים שהוסרו.":"אין מילים בקטגוריה הזו כרגע."}</p>`}
+ <ul class="cl" id="awMain">${filt==="removed"?gone.map(w=>row(w,removedBtns(w))).join(""):act.map((w,i)=>row(w,`<button data-copy="${esc(w.w)}" aria-label="העתקת מילה"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button><button data-say="${esc(w.w)}" aria-label="השמעה">🔊</button><button data-edit="${esc(w.w)}" aria-label="עריכת משמעות ומשפטים">✏️</button><button data-hide="${esc(w.w)}" aria-label="מכירה טוב" title="מכירה טוב">✓</button><button data-delword="${esc(w.w)}" aria-label="מחיקה לצמיתות" title="מחיקה לצמיתות">🗑</button>`,editing===w.w?editBox(w):statLine(w)+exLine(w),i+1)).join("")}</ul>`;
 }
 
 async function onImage(file){

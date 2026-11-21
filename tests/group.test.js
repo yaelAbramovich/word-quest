@@ -28,8 +28,7 @@ const {openApp,check,done}=require("./helpers");
  const stored=await page.evaluate(()=>JSON.parse(localStorage.wqGroup));
  check("saved on the device",stored.name==="מילים של השבוע"&&stored.words.length===5);
  check("group words are marked in the main list",(await page.$$eval("#awMain > li.ingrp",e=>e.length))===5);
- const chip=await page.textContent("[data-filter=group]");
- check("filter chip 🎯 name (5)",chip.includes("מילים של השבוע")&&chip.includes("(5)"),chip);
+ check("there is no group chip among the filters (the group has its own card)",!(await page.$("[data-filter=group]")));
  // games
  await page.click("[data-tab=quiz]");
  const opts=await page.$$eval("#scopeSel option",o=>o.map(x=>x.textContent.trim()));
