@@ -46,33 +46,36 @@ function build(ws){
  return ent;
 }
 
+const MAXB=11;   // the board is never bigger than 11x11, so it always fits the screen
+// builds a board from these words; null when the result is bigger than the board allows
+function layout(ws){
+ const ent=build(ws);
+ if(!ent.length) return null;
+ const r0=Math.min(...ent.map(e=>e.r)), c0=Math.min(...ent.map(e=>e.c));
+ const r1=Math.max(...ent.map(e=>e.r+(e.d?e.L.length-1:0))), c1=Math.max(...ent.map(e=>e.c+(e.d?0:e.L.length-1)));
+ const H=r1-r0+1, W=c1-c0+1;
+ if(W>MAXB||H>MAXB) return null;
+ return {ent,r0,c0,W,H,ws,score:ent.length*10-W*H/4};
+}
 function generate(){
  const pool=poolFor("crossword"), fit=fitWords(), sub=fit.length>CAP;
  let best=null;
- for(let t=0;t<(sub?60:250);t++){            // a small pool is retried many times to place every word
-  const ws=sub?pickSet("crossword",CAP,w=>fit.includes(w)):fit;
-  const ent=build(ws);
-  if(!ent.length||(sub&&ent.length<6)) continue;
-  const r0=Math.min(...ent.map(e=>e.r)), c0=Math.min(...ent.map(e=>e.c));
-  const r1=Math.max(...ent.map(e=>e.r+(e.d?e.L.length-1:0))), c1=Math.max(...ent.map(e=>e.c+(e.d?0:e.L.length-1)));
-  const H=r1-r0+1, W=c1-c0+1;
-  if(W>11||H>11) continue;
-  const score=ent.length*10-W*H/4;
-  if(!best||score>best.score) best={ent,r0,c0,W,H,score,ws};
-  if(ent.length>=(sub?8:ws.length)) break;
+ // aim for as many words as the pool allows; long words may not fit the board, so aim lower step by step (never below 4)
+ for(let target=Math.min(CAP,fit.length); target>=Math.min(4,fit.length); target--){
+  const all=target===fit.length;           // the whole pool is tried many times; otherwise a random subset of `target` words
+  for(let t=0;t<(all?250:60);t++){
+   const ws=all?fit:pickSet("crossword",target,w=>fit.includes(w));
+   const L=layout(ws); if(!L) continue;
+   if(!best||L.ent.length>best.ent.length||(L.ent.length===best.ent.length&&L.score>best.score)) best=L;
+   if(L.ent.length>=ws.length) break;
+  }
+  if(best&&best.ent.length>=target) break;  // every word of this try fits: done
  }
- if(!best){ // fallback: should be very rare
-  const ws=sub?pickSet("crossword",5,w=>fit.includes(w)):fit;
-  const ent=build(ws);
-  const r0=Math.min(...ent.map(e=>e.r)), c0=Math.min(...ent.map(e=>e.c));
-  best={ent,r0,c0,ws,
-   W:Math.max(...ent.map(e=>e.c+(e.d?0:e.L.length)))-c0,
-   H:Math.max(...ent.map(e=>e.r+(e.d?e.L.length:1)))-r0};
- }
+ if(!best) best=layout([fit[0]]);           // cannot happen with 4+ usable words; keeps the game from crashing
  const {ent,r0,c0,W,H}=best;
- // words that did not make it into the grid (or do not fit a crossword) are listed, never replaced by other words
+ // words that did not make it into the board (or do not fit a crossword) are listed, never replaced by other words
  const placed=new Set(ent.map(e=>e.w));
- const left=sub?[]:best.ws.filter(w=>!placed.has(w)).concat(pool.filter(w=>!fit.includes(w)));
+ const left=sub?[]:pool.filter(w=>!placed.has(w));
  const note={shown:sub?placed.size:null,total:pool.length,left};
  const cells=Array.from({length:H},()=>Array(W).fill(null));
  const entries=ent.map(e=>({w:e.w,L:e.L,d:e.d,r:e.r-r0,c:e.c-c0,solved:false,hinted:false,missed:false,cells:[]}));
@@ -106,7 +109,7 @@ function draw(){
   h+=`<div class="cx${inCur.has(k)?" in":""}${r===ar&&c===ac?" act":""}${cell.locked?" ok":cell.hint?" hintd":""}${P.bad.has(k)?" bad":""}" data-r="${r}" data-c="${c}">${cell.num?`<i>${cell.num}</i>`:""}${cell.val}</div>`;
  }
  $("cwGrid").style.gridTemplateColumns=`repeat(${P.W},minmax(0,1fr))`;
- $("cwGrid").style.width=`max(100%,${P.W*28}px)`;
+ $("cwGrid").style.setProperty("--n",P.W);   // the letter size follows the number of columns
  $("cwGrid").innerHTML=h;
  $("cwClue").innerHTML=`<b>${e.num} ${e.d?"אנכי ⬇":"אופקי ➡"}</b> · ${e.w.he} <small>(${e.L.length} אותיות)</small>`;
  const list=d=>P.entries.map((x,i)=>x.d===d?`<li data-e="${i}" data-en="${x.w.w}" class="${x.solved?"done":""}${i===P.ei?" cur":""}">${x.num}. ${x.solved?`<b dir="ltr">${x.w.w}</b> — `:""}${x.w.he}</li>`:"").join("");

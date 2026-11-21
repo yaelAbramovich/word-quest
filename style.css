@@ -94,7 +94,7 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 .wr textarea.ex{flex-basis:100%;min-width:0;border:2px solid #e3e3ee;border-radius:11px;padding:10px;font:inherit;font-size:16px;background:#fff;color:var(--dark);resize:vertical;box-sizing:border-box;direction:ltr;text-align:left}
 
 /* edit-sentence button next to every sentence */
-.exwrap{display:flex;gap:6px;align-items:flex-start;margin-top:6px}.exwrap .example{flex:1;min-width:0;margin:0}.exedit{flex:none;border:0;background:#eeebff;border-radius:10px;width:34px;height:34px;font-size:15px;padding:0}.feedback .exwrap{margin-top:10px}
+.exwrap{display:flex;gap:6px;align-items:center;margin-top:6px}.exwrap .example{flex:1;min-width:0;margin:0}.exedit{flex:none;border:0;background:#eeebff;border-radius:10px;width:34px;height:34px;font-size:15px;padding:0}.feedback .exwrap{margin-top:10px}
 .helpsheet .editbox{background:transparent;padding:0}.helpsheet .editbox textarea{margin:6px 0}
 
 /* scope selector, shared lock, game messages */
@@ -112,3 +112,9 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 
 .st:empty{display:none}
 .grp .sum{margin:14px 0 10px;line-height:1.5}.grp .sum small{color:var(--muted)}.sum.warn{background:#fff4cf}.gbnote{margin-top:6px;font-size:13px;color:var(--muted)}
+/* crossword board always fits the screen: no sideways scrolling, nothing cut off */
+.cwwrap{overflow:visible;direction:ltr}.cwwrap .cw{width:100%;max-width:420px}
+.cx{font-size:clamp(10px,calc(min(100vw - 64px,420px) / var(--n,11) * .55),20px)}
+
+/* group area: collapsible like the other sections */
+.grp>summary{cursor:pointer;font-size:15px;padding:4px 0}.grp[open]>summary{margin-bottom:8px}.grpsum{color:var(--muted);font-size:13px;font-weight:400;margin-inline-start:6px}

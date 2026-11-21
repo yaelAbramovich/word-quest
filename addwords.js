@@ -55,6 +55,9 @@ const FILTERS=["all","new","weak","strong","group"];
 let filt=store.get("wqFilter","all");
 const alpha=(a,b)=>a.w.localeCompare(b.w);
 const val=w=>{const t=wstat(w); return !t.n?2:t.pct!==null?t.pct/100:t.c/t.n};   // sort key: lower = weaker
+let grpOpen=store.get("wqGrpOpen","1")==="1";   // the group area can be collapsed; the choice is remembered
+const grpOpenAttr=()=>grpOpen?" open":"";
+const setGrpOpen=v=>{ grpOpen=v; store.set("wqGrpOpen",v?"1":"0"); };
 let builder=null;   // while the group builder is open: {name,cat,picked:Set}
 const BUILD_CATS=[["all","הכל"],["new","חדשות"],["weak","חלשות"],["strong","חזקות"]];
 const builderPool=()=>builder.cat==="all"?words:words.filter(w=>category(w)===builder.cat);
@@ -65,17 +68,17 @@ function builderSumHTML(){
 }
 function builderHTML(){
  const pool=[...builderPool()].sort(alpha);
- return `<div class="grp building"><h4>🎯 ${group?"עריכת הקבוצה":"קבוצה חדשה"}</h4>
+ return `<details class="grp building" id="grpBox"${grpOpenAttr()}><summary><b>🎯 ${group?"עריכת הקבוצה":"קבוצה חדשה"}</b></summary>
  <label class="lbl">שם הקבוצה (אפשר לכתוב חופשי)</label><input id="gbName" maxlength="30" placeholder="למשל: מילים של השבוע" value="${esc(builder.name)}">
  <label class="lbl">מאיזו קטגוריה לבחור?</label><select id="gbCat">${BUILD_CATS.map(([k,t])=>`<option value="${k}"${builder.cat===k?" selected":""}>${t}</option>`).join("")}</select>
  ${builderSumHTML()}
  <ul class="cl gbl">${pool.map(w=>`<li><label class="gbpick"><input type="checkbox" data-gbpick="${esc(w.w)}"${builder.picked.has(w.w)?" checked":""}><span><b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span></label></li>`).join("")}</ul>
- <div class="tools"><button class="wide" id="gbSave">💾 שמירת הקבוצה</button><button class="wide" id="gbCancel">ביטול</button></div></div>`;
+ <div class="tools"><button class="wide" id="gbSave">💾 שמירת הקבוצה</button><button class="wide" id="gbCancel">ביטול</button></div></details>`;
 }
 function groupClick(e){
  const t=id=>e.target.closest(id);
- if(t("[data-grpnew]")){ builder={name:"קבוצה 1",cat:"all",picked:new Set()}; drawCustom(); return true; }
- if(t("[data-grpedit]")){ builder={name:group.name,cat:"all",picked:new Set(groupWords().map(w=>w.w))}; drawCustom(); return true; }
+ if(t("[data-grpnew]")){ setGrpOpen(true); builder={name:"קבוצה 1",cat:"all",picked:new Set()}; drawCustom(); return true; }
+ if(t("[data-grpedit]")){ setGrpOpen(true); builder={name:group.name,cat:"all",picked:new Set(groupWords().map(w=>w.w))}; drawCustom(); return true; }
  if(t("[data-grpend]")){
   if(confirm(`לסיים את הקבוצה "${group.name}"? ההתקדמות של המילים נשמרת.`)){ group=null; saveGroup(); if(filt==="group"){ filt="all"; store.set("wqFilter",filt); } drawCustom(); }
   return true;
@@ -129,10 +132,10 @@ const row=(w,btns,extra,n)=>{ const g=group&&group.words.includes(w.w); return `
  const groupSection=()=>{
   if(!hasGroup) return `<div class="grp empty"><button class="next" style="display:block;margin:0" data-grpnew>🎯 בניית קבוצה</button><p class="tip">אפשר לבחור כמה מילים בלבד ללמוד עכשיו, לתת להן שם, ולשחק בהן בכל המשחקים.</p></div>`;
   const gw=groupWords().sort(alpha), strongN=gw.filter(w=>category(w)==="strong").length;
-  return `<div class="grp"><div class="grph"><b>🎯 ${esc(group.name)}</b><span>${gw.length} מילים · ${strongN} חזקות</span></div>
+  return `<details class="grp" id="grpBox"${grpOpenAttr()}><summary><b>🎯 ${esc(group.name)}</b> <span class="grpsum">${gw.length} מילים · ${strongN} חזקות</span></summary>
   ${strongN===gw.length?`<div class="win">🎉 כל המילים בקבוצה חזקות! אפשר לסיים ולבנות קבוצה חדשה.</div>`:""}
   <ul class="cl grpl">${gw.map(w=>row(w,"",(category(w)==="strong"?`<div class="st2"><span class="g">✓ חזקה</span></div>`:"")+statLine(w),0)).join("")}</ul>
-  <div class="tools"><button data-grpedit>✏️ עריכת הקבוצה</button><button data-grpend>סיום קבוצה</button></div></div>`;
+  <div class="tools"><button data-grpedit>✏️ עריכת הקבוצה</button><button data-grpend>סיום קבוצה</button></div></details>`;
  };
  const copyIcon=`<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>`;
  const exLine=w=>{
@@ -300,6 +303,7 @@ games.addwords={render(c){
   if(e.target.id==="shSel"){ store.set("wqScopeSharedValue",e.target.value); drawCustom(); return; }
  });
  $("awList").addEventListener("input",groupInput);
+ $("awList").addEventListener("toggle",e=>{ if(e.target.id==="grpBox") setGrpOpen(e.target.open); },true);   // "toggle" does not bubble
  document.addEventListener("sentencechanged",()=>{ if($("awList")) drawCustom(); },{once:false});
  drawRows(); drawCustom();
 }};

@@ -36,6 +36,15 @@ const {openApp,check,done}=require("./helpers");
  check("group words are marked in the main list",(await page.$$eval("#awMain > li.ingrp",e=>e.length))===5);
  const chip=await page.textContent("[data-filter=group]");
  check("filter chip 🎯 name (5)",chip.includes("מילים של השבוע")&&chip.includes("(5)"),chip);
+ // collapse / expand
+ check("group area is open by default",await page.$eval("#grpBox",e=>e.open));
+ await page.click("#grpBox > summary");
+ check("tapping the title collapses it (words hidden)",!(await page.$eval("#grpBox",e=>e.open))&&!(await page.isVisible("#grpBox .grpl")));
+ await page.click("[data-filter=all]");
+ check("it stays collapsed after the tab redraws",!(await page.$eval("#grpBox",e=>e.open)));
+ check("the choice is remembered on the device",(await page.evaluate(()=>store.get("wqGrpOpen")))==="0");
+ await page.click("#grpBox > summary");
+ check("tapping again expands it",(await page.$eval("#grpBox",e=>e.open))&&(await page.isVisible("#grpBox .grpl")));
  // games
  await page.click("[data-tab=quiz]");
  const opts=await page.$$eval("#scopeSel option",o=>o.map(x=>x.textContent.trim()));
@@ -51,6 +60,10 @@ const {openApp,check,done}=require("./helpers");
  // edit
  await page.click("[data-grpedit]");
  check("edit opens the builder with the current name",(await page.inputValue("#gbName"))==="מילים של השבוע");
+ await page.click("#grpBox > summary");
+ check("the builder collapses too",!(await page.$eval("#grpBox",e=>e.open))&&!(await page.isVisible("#gbSave")));
+ await page.click("#grpBox > summary");
+ check("and expands again with its ticks kept",(await page.isVisible("#gbSave"))&&(await page.$$eval("[data-gbpick]:checked",e=>e.length))===4);
  await page.click("#gbCancel");
  // finish
  page.once("dialog",d=>d.accept());
