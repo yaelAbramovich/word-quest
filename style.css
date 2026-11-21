@@ -107,14 +107,24 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 /* my group */
 .grp{border:2px solid #b9b0ff;border-radius:18px;padding:12px;margin:0 0 14px;background:#faf9ff}.grp.empty{border-style:dashed;background:transparent}.grph{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}.grph b{font-size:16px}.grph span{color:var(--muted);font-size:13px}
 .grp .lbl{display:block;font-size:12.5px;color:var(--muted);margin:8px 0 3px}.grp input:not([type=checkbox]),.grp select{width:100%;box-sizing:border-box;font:inherit;font-size:15px;padding:9px;border-radius:11px;border:2px solid #e3e3ee;background:#fff;color:var(--dark)}.gbrow{display:flex;gap:8px}.gbrow input{flex:0 0 90px}.gbrow button{flex:1;border:0;border-radius:11px;background:#ececf3;font:inherit;font-size:14px}
-.gbl{max-height:320px;overflow:auto}.gbpick{display:flex;gap:10px;align-items:center;padding:4px 0}.gbpick input{width:20px;height:20px;flex:none}
 .cl li.ingrp{border-inline-start:4px solid #6c5ce7}
 
 .st:empty{display:none}
-.grp .sum{margin:14px 0 10px;line-height:1.5}.grp .sum small{color:var(--muted)}.sum.warn{background:#fff4cf}.gbnote{margin-top:6px;font-size:13px;color:var(--muted)}
+.grp .sum{margin:14px 0 10px;line-height:1.5}.grp .sum small{color:var(--muted)}.sum.warn{background:#fff4cf}
 /* crossword board always fits the screen: no sideways scrolling, nothing cut off */
 .cwwrap{overflow:visible;direction:ltr}.cwwrap .cw{width:100%;max-width:420px}
 .cx{font-size:clamp(10px,calc(min(100vw - 64px,420px) / var(--n,11) * .55),20px)}
 
 /* group area: collapsible like the other sections */
 .grp>summary{cursor:pointer;font-size:15px;padding:4px 0}.grp[open]>summary{margin-bottom:8px}.grpsum{color:var(--muted);font-size:13px;font-weight:400;margin-inline-start:6px}
+
+/* two-column group builder */
+.gbcols{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.gbcol{background:#fff;border-radius:12px;padding:6px;min-width:0}.gbcol.on{background:#eeebff;border:2px solid #b9b0ff}
+.gbcol h5{margin:2px 2px 6px;font-size:12.5px;display:flex;justify-content:space-between}
+.gbbody{max-height:320px;min-height:120px;overflow:auto;overflow-anchor:none;-webkit-overflow-scrolling:touch}
+.gbbody:empty::before{content:"אין מילים";display:block;color:#999;font-size:12px;padding:8px}
+.gbw{position:relative;display:block;width:100%;box-sizing:border-box;text-align:right;border:0;background:#f5f5fb;border-radius:9px;padding:7px 8px;margin:0 0 5px;font:inherit;color:var(--dark);line-height:1.25;cursor:pointer}
+.gbcol.on .gbw{background:#fff}.gbw b{display:block;direction:ltr;text-align:right;font-size:13.5px}.gbw small{display:block;color:var(--muted);font-size:11px;overflow-wrap:anywhere}
+.gbarr{position:absolute;left:6px;top:50%;transform:translateY(-50%);color:#b9b0ff;font-size:13px}
+.gbw.flash{animation:gbflash .6s}@keyframes gbflash{0%{outline:3px solid #1f9d62;background:#d9f5e5}100%{outline:3px solid transparent}}

@@ -58,31 +58,67 @@ const val=w=>{const t=wstat(w); return !t.n?2:t.pct!==null?t.pct/100:t.c/t.n};  
 let grpOpen=store.get("wqGrpOpen","1")==="1";   // the group area can be collapsed; the choice is remembered
 const grpOpenAttr=()=>grpOpen?" open":"";
 const setGrpOpen=v=>{ grpOpen=v; store.set("wqGrpOpen",v?"1":"0"); };
-let builder=null;   // while the group builder is open: {name,cat,picked:Set}
+let builder=null;   // while the builder is open: {name,cat,q,picked:Set}
 const BUILD_CATS=[["all","הכל"],["new","חדשות"],["weak","חלשות"],["strong","חזקות"]];
-const builderPool=()=>builder.cat==="all"?words:words.filter(w=>category(w)===builder.cat);
-// the counter bar is updated on its own when a word is ticked, so the word list is not redrawn (it would jump back to the top)
+const bMatch=w=>{ const q=builder.q.trim().toLowerCase(); return !q||(w.w+" "+w.he).toLowerCase().includes(q); };
+const leftWords=()=>words.filter(w=>!builder.picked.has(w.w)&&(builder.cat==="all"||category(w)===builder.cat)&&bMatch(w)).sort(alpha);
+const rightWords=()=>words.filter(w=>builder.picked.has(w.w)).sort(alpha);
+const bCard=(w,chosen)=>`<button type="button" class="gbw${chosen?" on":""}" data-w="${esc(w.w)}"><b dir="ltr">${esc(w.w)}</b><small>${esc(w.he)}</small>${chosen?"":`<span class="gbarr" aria-hidden="true">▶</span>`}</button>`;
 function builderSumHTML(){
- const pool=builderPool(), n=builder.picked.size, other=[...builder.picked].filter(x=>!pool.some(w=>w.w===x)).length;
- return `<div class="sum${n<GROUP_MIN?" warn":""}" id="gbSum">${n<GROUP_MIN?`⚠️ נבחרו ${n} מילים. צריך לפחות ${GROUP_MIN} מילים בקבוצה.`:`✓ נבחרו ${n} מילים.`} <small>(מינימום ${GROUP_MIN}; אפשר לסמן כמה שרוצים)</small>${other?`<div class="gbnote">${other} מהמילים שסומנו הן מקטגוריות אחרות ולא מוצגות כאן. בחרי ״הכל״ כדי לראות את כולן.</div>`:""}</div>`;
+ const n=builder.picked.size;
+ return `<div class="sum${n<GROUP_MIN?" warn":""}" id="gbSum">${n<GROUP_MIN?`⚠️ נבחרו ${n} מילים. צריך לפחות ${GROUP_MIN} מילים בקבוצה.`:`✓ נבחרו ${n} מילים.`} <small>(מינימום ${GROUP_MIN}; אפשר לבחור כמה שרוצים)</small></div>`;
+}
+function updateBuilderCounts(){
+ $("gbCntL").textContent=$("gbLeft").children.length;
+ $("gbCntR").textContent=$("gbRight").children.length;
+ $("gbSum").outerHTML=builderSumHTML();
+}
+function drawColumns(){   // both columns, keeping their scroll position
+ const l=$("gbLeft"), r=$("gbRight"), sl=l.scrollTop, sr=r.scrollTop;
+ l.innerHTML=leftWords().map(w=>bCard(w,false)).join("");
+ r.innerHTML=rightWords().map(w=>bCard(w,true)).join("");
+ l.scrollTop=sl; r.scrollTop=sr; updateBuilderCounts();
+}
+function drawLeft(){   // search or category changed: only the left column, from the top
+ const l=$("gbLeft");
+ l.innerHTML=leftWords().map(w=>bCard(w,false)).join(""); l.scrollTop=0; updateBuilderCounts();
+}
+// the word card itself is moved (never a redraw), so nothing scrolls or jumps
+function toggleWord(name){
+ const w=words.find(x=>x.w===name); if(!w) return;
+ const chosen=!builder.picked.has(name);
+ chosen?builder.picked.add(name):builder.picked.delete(name);
+ const old=[...document.querySelectorAll("#gbLeft .gbw,#gbRight .gbw")].find(c=>c.dataset.w===name);
+ if(old) old.remove();
+ const target=chosen?$("gbRight"):(leftWords().includes(w)?$("gbLeft"):null);   // a word that does not match the search/category does not show on the left
+ if(target){
+  const t=document.createElement("div"); t.innerHTML=bCard(w,chosen);
+  const el=t.firstChild, next=[...target.children].find(c=>c.dataset.w.localeCompare(name)>0);   // keeps A-Z order
+  target.insertBefore(el,next||null); el.classList.add("flash");
+ }
+ updateBuilderCounts();
 }
 function builderHTML(){
- const pool=[...builderPool()].sort(alpha);
  return `<details class="grp building" id="grpBox"${grpOpenAttr()}><summary><b>🎯 ${group?"עריכת הקבוצה":"קבוצה חדשה"}</b></summary>
  <label class="lbl">שם הקבוצה (אפשר לכתוב חופשי)</label><input id="gbName" maxlength="30" placeholder="למשל: מילים של השבוע" value="${esc(builder.name)}">
- <label class="lbl">מאיזו קטגוריה לבחור?</label><select id="gbCat">${BUILD_CATS.map(([k,t])=>`<option value="${k}"${builder.cat===k?" selected":""}>${t}</option>`).join("")}</select>
+ <label class="lbl">חיפוש (אנגלית או עברית)</label><input id="gbSearch" type="search" placeholder="🔎 חיפוש מילה…" value="${esc(builder.q)}" autocapitalize="none" autocorrect="off">
+ <label class="lbl">אילו מילים להציג ברשימה משמאל?</label><select id="gbCat">${BUILD_CATS.map(([k,t])=>`<option value="${k}"${builder.cat===k?" selected":""}>${t}</option>`).join("")}</select>
  ${builderSumHTML()}
- <ul class="cl gbl">${pool.map(w=>`<li><label class="gbpick"><input type="checkbox" data-gbpick="${esc(w.w)}"${builder.picked.has(w.w)?" checked":""}><span><b dir="ltr">${esc(w.w)}</b> — ${esc(w.he)}</span></label></li>`).join("")}</ul>
+ <div class="gbcols">
+  <div class="gbcol on"><h5><span>✓ נבחרו</span><span id="gbCntR">${rightWords().length}</span></h5><div class="gbbody" id="gbRight">${rightWords().map(w=>bCard(w,true)).join("")}</div></div>
+  <div class="gbcol"><h5><span>לא נבחרו</span><span id="gbCntL">${leftWords().length}</span></h5><div class="gbbody" id="gbLeft">${leftWords().map(w=>bCard(w,false)).join("")}</div></div>
+ </div>
  <div class="tools"><button class="wide" id="gbSave">💾 שמירת הקבוצה</button><button class="wide" id="gbCancel">ביטול</button></div></details>`;
 }
 function groupClick(e){
  const t=id=>e.target.closest(id);
- if(t("[data-grpnew]")){ setGrpOpen(true); builder={name:"קבוצה 1",cat:"all",picked:new Set()}; drawCustom(); return true; }
- if(t("[data-grpedit]")){ setGrpOpen(true); builder={name:group.name,cat:"all",picked:new Set(groupWords().map(w=>w.w))}; drawCustom(); return true; }
+ if(t("[data-grpnew]")){ setGrpOpen(true); builder={name:"קבוצה 1",cat:"all",q:"",picked:new Set()}; drawCustom(); return true; }
+ if(t("[data-grpedit]")){ setGrpOpen(true); builder={name:group.name,cat:"all",q:"",picked:new Set(groupWords().map(w=>w.w))}; drawCustom(); return true; }
  if(t("[data-grpend]")){
   if(confirm(`לסיים את הקבוצה "${group.name}"? ההתקדמות של המילים נשמרת.`)){ group=null; saveGroup(); if(filt==="group"){ filt="all"; store.set("wqFilter",filt); } drawCustom(); }
   return true;
  }
+ const card=t(".gbw"); if(card&&builder){ toggleWord(card.dataset.w); return true; }
  if(t("#gbCancel")){ builder=null; drawCustom(); return true; }
  if(t("#gbSave")){
   const name=builder.name.trim();
@@ -93,13 +129,14 @@ function groupClick(e){
  }
  return false;
 }
-function groupInput(e){ if(builder&&e.target.id==="gbName") builder.name=e.target.value; }
+function groupInput(e){
+ if(!builder) return;
+ if(e.target.id==="gbName") builder.name=e.target.value;
+ if(e.target.id==="gbSearch"){ builder.q=e.target.value; drawLeft(); }
+}
 function groupChange(e){
  if(!builder) return false;
- if(e.target.id==="gbCat"){ builder.cat=e.target.value; drawCustom(); return true; }
- if(e.target.dataset.gbpick!==undefined){
-  const n=e.target.dataset.gbpick; e.target.checked?builder.picked.add(n):builder.picked.delete(n); $("gbSum").outerHTML=builderSumHTML(); return true;
- }
+ if(e.target.id==="gbCat"){ builder.cat=e.target.value; drawLeft(); return true; }
  return false;
 }
 function statLine(w){
