@@ -140,3 +140,7 @@ header .hd p{display:none}.hd h1{overflow:hidden;text-overflow:ellipsis;font-siz
 .card2>summary{list-style:none}.card2>summary::-webkit-details-marker{display:none}
 .card2 .gtop::after{content:"◂";order:3;color:#6c5ce7;font-size:16px;margin-inline-start:4px}.card2[open] .gtop::after{content:"▾"}
 .gbcol:not(.on) .gbw{padding-left:22px}
+
+/* back to default: a separate warning box at the bottom of the Words tab */
+.resetbox{margin:22px 0 6px;padding:12px;border:2px dashed #f0b6bb;border-radius:14px;background:#fff6f7}.resetbox h4{margin:0 0 4px;font-size:15px;color:#9b2c36}.resetbox .tip{margin:4px 0 10px}
+.resetbox button{display:block;width:100%;border:0;border-radius:12px;background:#f3c9ce;color:#9b2c36;font:inherit;font-weight:700;font-size:15px;padding:12px}

@@ -311,8 +311,14 @@ games.addwords={render(c){
  <div class="tools"><button id="awRow">＋ הוספת שורה ידנית</button></div>
  <button class="next" id="awSave" style="display:none">💾 הוספה למשחקים</button>
  </details>
- <div id="awList"></div>`;
+ <div id="awList"></div>
+ <div class="resetbox"><h4>↩ חזרה לברירת מחדל</h4>
+  <p class="tip">מוחק את כל מה ששמרת במכשיר הזה (מילים שהוספת, עריכות, מילים שמחקת או הסרת, הקבוצה, ההתקדמות וההגדרות) ומחזיר את 10 מילות ברירת המחדל. אי אפשר לבטל.</p>
+  <button type="button" id="awDefault">↩ חזרה לברירת מחדל</button></div>`;
  fillVoices(); markRate();
+ $("awDefault").onclick=()=>{
+  if(confirm("לחזור לברירת המחדל?\nזה ימחק הכל: מילים שהוספת, עריכות של משמעויות ומשפטים, מילים שמחקת או הסרת, הקבוצה, כל ההתקדמות וההגדרות (קול, מהירות, השתקה).\nיוצגו שוב רק 10 מילות ברירת המחדל. אי אפשר לבטל.")) resetToDefault();
+ };
  try{ speechSynthesis.onvoiceschanged=fillVoices; }catch(e){}
  $("vSel").onchange=e=>{ store.set("wqVoice",e.target.value); fillVoices(); speak("She picked a daisy in the garden.",true); };
  $("vRate").onclick=e=>{ const b=e.target.closest("[data-rate]"); if(!b) return; store.set("wqRate",b.dataset.rate); markRate(); speak("She picked a daisy in the garden.",true); };

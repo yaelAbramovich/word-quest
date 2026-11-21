@@ -65,6 +65,13 @@ function deleteWord(w){
  save();
  return true;
 }
+// "back to default": erase everything this app saved on this device (words you added, edits, deleted and removed words, group,
+// progress, settings) and show the 10 starter words again, like a brand-new user. Only this device. Cannot be undone.
+function resetToDefault(){
+ try{ Object.keys(localStorage).filter(k=>k.startsWith("wq")).forEach(k=>localStorage.removeItem(k)); }catch(e){}
+ store.set("wqPack","starter");   // the next load counts as a new device even if the app writes its own keys first
+ location.reload();
+}
 applyHidden();
 const games={};
 let currentTab=null;
