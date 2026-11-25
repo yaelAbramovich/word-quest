@@ -6,7 +6,8 @@ const recentOpts=[];   // wrong options of the last rounds: they are not used ag
 const STEMS={strike:"struck",tumble:"tumbled","doze off":"dozed off"};
 const blankRe=w=>{ const x=(STEMS[w.w]||w.w).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); return new RegExp(w.custom?"\\b\\w*"+x+"\\w*":x,'i'); };
 function options(prop){
- const others=words.filter(x=>x!==current);
+ const all=words.filter(x=>x!==current), apart=all.filter(x=>!sameMeaning(current,x));
+ const others=apart.length>=3?apart:all;   // a word with the same meaning is never a wrong option (unless there are too few other words)
  const used=new Set(recentOpts.flat());
  // wrong options come from words that were not options in the last 3 rounds (if there are not enough, the rest fill in)
  const fresh=shuffle(others.filter(x=>!used.has(x.w))), old=shuffle(others.filter(x=>used.has(x.w)));

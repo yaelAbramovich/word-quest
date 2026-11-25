@@ -170,7 +170,7 @@ function statLine(w){
  if(!t.n) return `<div class="st2"><span>חדשה — עוד לא תורגלה בתשבץ או בחידון</span></div>`;
  const dots=Array.from({length:WINDOW},(_,i)=>t.a[i]?`<i class="d ${t.a[i][0]?"ok":"no"}"></i>`:`<i class="d"></i>`).join("");
  let label;
- if(t.pct===null) label=`<span>בלמידה ${t.n}/${WINDOW}</span>`;
+ if(t.pct===null) label=`<span>בלמידה ${t.n}/${WINDOW}${t.n<WINDOW?` · עוד ${WINDOW-t.n===1?"ניסיון אחד":(WINDOW-t.n)+" ניסיונות"} לאחוז`:""}</span>`;
  else{
   const col=t.pct>=80?"#1f9d62":t.pct>=50?"#e6a100":"#d64c57";
   label=`<b style="color:${col}">${t.pct}%</b>${t.capped?`<span>(עד 90% — צריך הצלחות ב-${DAYS_FOR_100} ימים שונים)</span>`:""}`;

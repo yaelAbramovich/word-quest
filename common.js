@@ -108,6 +108,13 @@ function weightOf(w){
  const t=wstat(w), rate=t.pct!==null?t.pct/100:(t.n?t.c/t.n:0);
  return Math.max(t.pct===null?2:1,1+4*(1-rate))+(S.mistakes[w.w]||0);
 }
+// ---- same meaning: two words whose Hebrew meaning matches must not appear together as a right and a "wrong" answer ----
+// every comma-separated meaning is reduced to its consonants (prefix ל/ה/ו/ב/כ/מ/ש, ending ים/ות and the letters ו/י are dropped), so לרעוד and רועד match
+const meaningKeys=he=>String(he||"").split(/[,;\/]/).map(t=>t.trim().replace(/[^\u05d0-\u05ea]/g,"")).filter(Boolean).map(t=>{
+ if(t.length>3&&"להובכמש".includes(t[0])) t=t.slice(1);
+ return t.replace(/(ים|ות)$/,"").replace(/[וי]/g,"");
+}).filter(Boolean);
+function sameMeaning(a,b){ const k=new Set(meaningKeys(a.he)); return meaningKeys(b.he).some(x=>k.has(x)); }
 // ---- scope: every game can use all words, or only the weak ones (new, or under 80% correct) ----
 // ---- categories: every active word is in exactly one ----
 const CAT_NAME={new:"חדשות",weak:"חלשות",strong:"חזקות"};
