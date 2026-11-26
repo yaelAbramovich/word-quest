@@ -215,7 +215,7 @@ const row=(w,btns,extra,n)=>{ const g=group&&group.words.includes(w.w); return `
   if(openEx.has(w.w)) h+=w.exs.map(x=>`<div class="st2 ex-line"><span class="sent">${esc(x)}</span><button data-copy="${esc(x)}" aria-label="העתקת משפט">${copyIcon}</button></div>`).join("");
   return h;
  };
- const editBox=w=>`<div class="editbox"><label>משמעות (מה שמוצג במשחקים)</label><input id="edHe" value="${esc(w.he)}"><label>הסבר מורחב (לא חובה)</label><input id="edM" value="${esc(w.m||"")}"><label>משפטים באנגלית — כל משפט בשורה נפרדת. במשחקים נבחר משפט אקראי, בלי לחזור על אותו משפט פעמיים ברציפות.</label><textarea id="edEx" dir="ltr" rows="4" autocapitalize="none">${esc(w.exs.join("\n"))}</textarea><div class="tools"><button class="wide" data-edsave="${esc(w.w)}">💾 שמירה</button><button class="wide" data-edfind="${esc(w.w)}">🔍 הוספת משפט</button><button class="wide" data-edcancel>ביטול</button></div></div>`;
+ const editBox=w=>`<div class="editbox"><label>המילה באנגלית</label><input id="edW" dir="ltr" value="${esc(w.w)}" autocapitalize="none" autocomplete="off" spellcheck="false"><label>משמעות (מה שמוצג במשחקים)</label><input id="edHe" value="${esc(w.he)}"><label>הסבר מורחב (לא חובה)</label><input id="edM" value="${esc(w.m||"")}"><label>משפטים באנגלית — כל משפט בשורה נפרדת. במשחקים נבחר משפט אקראי, בלי לחזור על אותו משפט פעמיים ברציפות.</label><textarea id="edEx" dir="ltr" rows="4" autocapitalize="none">${esc(w.exs.join("\n"))}</textarea><div class="tools"><button class="wide" data-edsave="${esc(w.w)}">💾 שמירה</button><button class="wide" data-edfind="${esc(w.w)}">🔍 הוספת משפט</button><button class="wide" data-edcancel>ביטול</button></div></div>`;
  const rec=words.filter(w=>wstat(w).mastered);
  const missing=customWords().filter(w=>!w.ex&&!hidden.has(w.w)).length;
  const fb=(k,t,n)=>`<button data-filter="${k}" class="${filt===k?"on":""}">${t} (${n})</button>`;
@@ -352,8 +352,10 @@ games.addwords={render(c){ fillMsg="";
   if(sv){
    const w=allWords.find(x=>x.w===sv.dataset.edsave); if(!w) return;
    const he=$("edHe").value.trim(); if(!he){ toast("צריך לכתוב משמעות"); return; }
-   w.he=he; w.m=$("edM").value.trim(); setSentences(w,$("edEx").value.split("\n"));
-   editing=null; drawCustom(); toast("נשמר ✓"); return; }
+   const oldName=w.w, nw=renameWord(w,$("edW").value); if(!nw) return;   // empty / taken name: the message is shown and the box stays open
+   if(nw.w!==oldName&&builder&&builder.picked.has(oldName)){ builder.picked.delete(oldName); builder.picked.add(nw.w); }
+   nw.he=he; nw.m=$("edM").value.trim(); setSentences(nw,$("edEx").value.split("\n"));
+   editing=null; renderStats(); drawCustom(); toast("נשמר ✓"); return; }
   const fd=e.target.closest("[data-edfind]");
   if(fd){
    const w=allWords.find(x=>x.w===fd.dataset.edfind); if(!w) return;

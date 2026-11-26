@@ -65,6 +65,29 @@ function deleteWord(w){
  save();
  return true;
 }
+// rename a word (fix a typo): its progress, removed state, group place and edits move to the new name.
+// A built-in word lives in a code file, so it is hidden under its old name and continues as one of your own words.
+// Returns the (possibly new) word object, or null with a toast when the name is empty or already taken.
+function renameWord(w,name){
+ name=String(name||"").trim();
+ if(!name){ toast("צריך לכתוב מילה"); return null; }
+ if(name===w.w) return w;
+ if(allWords.some(x=>x!==w&&x.w.toLowerCase()===name.toLowerCase())){ toast("יש כבר מילה כזו"); return null; }
+ const old=w.w; let nw=w;
+ if(w.custom) w.w=name;
+ else{
+  nw={w:name,he:w.he,m:w.m||"",ex:w.ex,exs:w.exs,custom:1};
+  allWords[allWords.indexOf(w)]=nw;
+  deleted.add(old); store.set("wqDeleted",JSON.stringify([...deleted]));
+  delete edits[old]; store.set("wqEdits",JSON.stringify(edits));
+ }
+ [S.stats,S.totals,S.mistakes,S.cards].forEach(o=>{ if(old in o){ o[name]=o[old]; delete o[old]; } });
+ if(S.learned.has(old)){ S.learned.delete(old); S.learned.add(name); }
+ if(hidden.has(old)){ hidden.delete(old); hidden.add(name); saveHidden(); }
+ if(group&&group.words.includes(old)){ group.words=group.words.map(n=>n===old?name:n); saveGroup(); }
+ saveCustom(); applyHidden(); save();
+ return nw;
+}
 // "back to default": erase everything this app saved on this device (words you added, edits, deleted and removed words, group,
 // progress, settings) and show the 10 starter words again, like a brand-new user. Only this device. Cannot be undone.
 function resetToDefault(){
